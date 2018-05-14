@@ -26,6 +26,6 @@ def load_model(model_name="MCTSnet"):
         return model
     except:
         model = MCTSnet(config.R, config.C)
-        print('Initializing new Network Weights for %s net' % model_name)
+        print('Initializing new Network Weights for %s' % model_name)
 
     return model

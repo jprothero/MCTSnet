@@ -64,7 +64,7 @@ class MCTSnet:
         az = self.az
 
         game_over = False
-        curr_player = 0
+        curr_player = 1
         state_np = np.array(root_state)
         state = self.convert_to_torch(root_state).unsqueeze(0)
 
@@ -79,15 +79,14 @@ class MCTSnet:
             if deterministic:
                 az.T = 0
             while not game_over:
+                curr_player += 1
+                curr_player = curr_player % 2
+                net = order[curr_player]
+
                 sim_state = state.clone() 
                 sim_state_np = np.array(state_np)
 
                 for _ in range(num_sims):
-                    net = order[curr_player]
-
-                    curr_player += 1
-                    curr_player = curr_player % 2
-
                     sim_state_np, result, sim_over = az.select(sim_state_np, self.transition_and_evaluate)
                     sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
 
@@ -115,6 +114,7 @@ class MCTSnet:
 
                 state_np, result, game_over = self.transition_and_evaluate(state_np, action)
                 state = self.convert_to_torch(state_np)
+                print(curr_player)
 
             if result == -1:
                 player = (curr_player + 1) % 2
