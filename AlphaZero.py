@@ -1,5 +1,6 @@
 import numpy as np
 from ipdb import set_trace
+np.set_printoptions(precision=3)
 
 class AlphaZero:
     def __init__(self, turns_until_tau0=10, alpha=.8, epsilon=.2, c=1):
@@ -30,7 +31,6 @@ class AlphaZero:
             choice_idx = self.curr_node["max_uct_idx"]
             self.curr_node = self.curr_node["children"][choice_idx]
             state, result, sim_over = transition_and_evaluate(state, choice_idx)
-
         return state, result, sim_over
 
     def select_real(self):
@@ -58,11 +58,13 @@ class AlphaZero:
 
         return idx, visits
 
-    def expand(self, policy):
+    def expand(self, policy, sim_state_np, correct_policy):
         self.curr_node["children"] = []
 
         if self.curr_node["parent"] is None:
             policy = self.add_dirichlet_noise(policy)
+
+        policy = self.correct_policy(policy, sim_state_np)
 
         for p in policy:
             child = {

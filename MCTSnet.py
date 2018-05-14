@@ -46,7 +46,7 @@ class MCTSnet:
 
         self.az = AlphaZero()
 
-    def self_play(self, root_state, best_only=True, num_sims=30, num_episodes=20, deterministic=False):
+    def self_play(self, root_state, best_only=True, num_sims=3, num_episodes=20, deterministic=False):
         self.best.eval()
         self.new.eval()
 
@@ -74,6 +74,7 @@ class MCTSnet:
         }
 
         memories = []
+        np.set_printoptions(precision=3)
         for _ in range(num_episodes):
             az.reset()
             if deterministic:
@@ -88,6 +89,7 @@ class MCTSnet:
 
                 for _ in range(num_sims):
                     sim_state_np, result, sim_over = az.select(sim_state_np, self.transition_and_evaluate)
+
                     sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
 
                     policy, value = net(sim_state)
@@ -97,10 +99,8 @@ class MCTSnet:
                     if result is not None:
                         value = result
 
-                    corrected_policy = self.correct_policy(policy, sim_state_np)
-
                     if not sim_over:
-                        az.expand(corrected_policy)
+                        az.expand(policy, sim_state_np, self.correct_policy)
 
                     az.backup(value)
 
@@ -112,13 +112,18 @@ class MCTSnet:
                     "curr_player": curr_player
                 })
 
+                set_trace()
                 state_np, result, game_over = self.transition_and_evaluate(state_np, action)
+                print(sim_state_np)
+                print(curr_player)
                 state = self.convert_to_torch(state_np)
 
             if result == -1:
                 player = (curr_player + 1) % 2
             else:
                 player = curr_player
+
+            print(player)
 
             scoreboard[name_order[player]] += 1
 
