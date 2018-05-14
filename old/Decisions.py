@@ -99,7 +99,7 @@ class Decisions(nn.Module):
 
         return az
 
-    def evaluate(self, alpha_zeros):
+    def evaluate(self, alpha_zeros, states):
         decision_indices = []
 
         decision_indices_lists = [[] for _ in range(len(self.decision_order))]
@@ -107,27 +107,8 @@ class Decisions(nn.Module):
         for i, az in enumerate(alpha_zeros):
             decision_indices_lists[az.decision_idx].append(i)
         
-        if len(alpha_zeros[0].trajectory) > 0:
-            embeddings = [self.embeddings[az.trajectory[-1]].unsqueeze(0) for az in alpha_zeros]
-            
-            embeddings = torch.cat(embeddings).unsqueeze(0)
-        else:
-            embeddings = [self.first_emb.unsqueeze(0) for _ in alpha_zeros]
-            embeddings = torch.cat(embeddings).unsqueeze(0)
-
-        if alpha_zeros[0].curr_node["hidden"] is not None:
-            hiddens = [az.curr_node["hidden"] for az in alpha_zeros]
-            hiddens = torch.cat(hiddens)
-            if self.has_cuda:
-                hiddens = hiddens.cuda()
-        else:
-            hiddens = None
-            
-        cont_outs, hiddens = self.controller(embeddings, hiddens)
+        cont_outs = self.controller(states)
         cont_outs = cont_outs.squeeze(0)
-
-        for az, hidden in zip(alpha_zeros, hiddens):
-            az.hidden = hidden
 
         for i, decision_indices in enumerate(decision_indices_lists):
             if len(decision_indices) > 0: 

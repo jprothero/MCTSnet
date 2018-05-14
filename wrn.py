@@ -20,7 +20,6 @@ class Flatten(nn.Module):
     def __init__(self): super().__init__()
     def forward(self, x): return x.view(x.size(0), -1)
 
-
 def conv_2d(ni, nf, ks, stride): return nn.Conv2d(ni, nf, kernel_size=ks, stride=stride, padding=ks//2, bias=False)
 
 def bn(ni, init_zero=False):
@@ -39,8 +38,8 @@ class BasicBlock(nn.Module):
     def __init__(self, ni, nf, stride, drop_p=0.0):
         super().__init__()
         self.bn = nn.BatchNorm2d(ni)
-        self.conv1 = conv_2d(ni, nf, 3, stride)
-        self.conv2 = bn_relu_conv(nf, nf, 3, 1)
+        self.conv1 = conv_2d(ni, nf, 1, stride)
+        self.conv2 = bn_relu_conv(nf, nf, 1, 1)
         self.drop = nn.Dropout(drop_p, inplace=True) if drop_p else None
         self.shortcut = conv_2d(ni, nf, 1, stride) if ni != nf else noop
 
@@ -57,18 +56,17 @@ def _make_group(N, ni, nf, block, stride, drop_p):
     return [block(ni if i == 0 else nf, nf, stride if i == 0 else 1, drop_p) for i in range(N)]
 
 class WideResNet(nn.Module):
-    def __init__(self, num_groups, N, num_classes=None, k=1, drop_p=0.0, start_nf=16):
+    def __init__(self, num_groups, N, in_channels=3, num_classes=None, k=1, drop_p=0.0, start_nf=16, stride=1):
         super().__init__()
         n_channels = [start_nf]
         for i in range(num_groups): n_channels.append(start_nf*(2**i)*k)
 
-        layers = [conv_2d(3, n_channels[0], 3, 1)]  # conv1
+        layers = [conv_2d(in_channels, n_channels[0], 1, 1)]  # conv1
         for i in range(num_groups):
-            layers += _make_group(N, n_channels[i], n_channels[i+1], BasicBlock, (1 if i==0 else 2), drop_p)
+            layers += _make_group(N, n_channels[i], n_channels[i+1], BasicBlock, (1 if i==0 else stride), drop_p)
 
-        layers += [nn.AdaptiveAvgPool2d(1)]
         if num_classes is not None:
-            layers += [bn_relu_conv(n_channels[-1], num_classes, 1, 1), Flatten()]
+            layers += [nn.AdaptiveAvgPool2d(1), bn_relu_conv(n_channels[-1], num_classes, 1, 1), Flatten()]
         
         self.features = nn.Sequential(*layers)
 

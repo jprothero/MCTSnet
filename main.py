@@ -5,6 +5,8 @@ import numpy as np
 import pickle
 from IPython.core.debugger import set_trace
 import torch
+import utils
+from MCTSnet_trainer import Trainer
 
 connect4 = Connect4()
 actions = connect4.actions
@@ -17,9 +19,17 @@ iteration = 0
 mctsnet = MCTSnet(actions=actions, get_legal_actions=get_legal_actions,
     transition_and_evaluate=transition_and_evaluate, cuda=False)
 
+memories = utils.load_memories()
+
+trainer = Trainer()
+
 while True:
-    mctsnet.fastai_train()
-    mctsnet.run_episode(root_state)
+    new_memories = mctsnet.self_play(root_state)
+    memories.extend(new_memories)
+
+    trainer.fastai_train(mctsnet.new, memories)
+
+    mctsnet.tournament(root_state, config.NUM_SIMS, config.NUM_TOURNAMENT_EPISODES)
 
     iteration += 1
     print("Iteration Number "+str(iteration))
