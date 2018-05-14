@@ -280,6 +280,59 @@ class MCTSnet:
                                np.expand_dims(joint_states[1], 0),
                                np.zeros(shape=np.expand_dims(joint_states[1], 0).shape) + curr_player), axis=0)
 
+        def convert_to_pytorch_state(state):
+            channel_one = cast_to_torch(state[0], self.cuda).unsqueeze(0)
+            channel_two = cast_to_torch(state[1], self.cuda).unsqueeze(0)
+            channel_three = cast_to_torch(state[2], self.cuda).unsqueeze(0)
+            return torch.cat(
+                [channel_one, channel_two, channel_three], 0).unsqueeze(0)
+
+        def get_state_mask(state, legal_actions):
+            flattened = state[:2].flatten()
+            flattened[legal_actions] = 1
+            return flattened.reshape(state[0].shape)
+
+        input_state = convert_to_pytorch_state(state)
+        memory = torch.tensor(root_state.shape)
+        memory = 0
+        set_trace()
+
+        #what was I doing here
+        #basically making it so you can imagine any future state
+        #obviously that has some appeal, but
+        #for now I think it's premature
+        #we need to make subsesquent statse work first
+        #but yeah its similar to what I was thinking about now, 
+        #we keep track of a short term memory, and use that to dictate what we explore
+        #and then we
+
+        for _ in range(config.MCTS_SIMS+1):
+            #consider adding a probas to do another sim and tradeoff between number of sims
+            #vs performance, i.e. maximize perf minimize sims
+            (exploratory_state,
+            strongest_transition, 
+            updated_memory, 
+            input_state_value) = mcts(input_state, memory)
+
+            input_state = exploratory_state
+            memory = updated_memory
+            # if sim < config.MCTS_SIMS:
+            #     memory["strongest_transitions"].append(strongest_transition)
+
+        #So basically I want to accumulate a bunch of moves from running the network
+
+        legal_actions = self.get_legal_actions(root_state[:2])
+        view = root_state[legal_actions]
+        probas = F.softmax(view, dim=0)
+        idx = np.random.choice(probas.data.numpy(), p=probas)
+        log_probas = F.log_softmax(view, dim=0)
+        memory["final_transition"] = strongest_transition
+        memory["log_probas"] = log_probas
+        memory["value"] = input_state_value
+        new_state = np.copy(root_state)*get_state_mask(root_state, legal_actions)
+        new_state[legal_actions[idx]] = 1
+        return new_state
+
         t = 0
         #+1 sims since the first is used to expand the embedding
         for sim in range(config.MCTS_SIMS+1):
@@ -330,6 +383,8 @@ class MCTSnet:
                 H = self.backup(H, R, S, t, memory)
                 t = 0
 
+
+
         self.models["readout"].eval()
 
         logits = self.models["readout"](H[0])
@@ -345,6 +400,19 @@ class MCTSnet:
             temp = np.zeros(shape=pi.shape)
             temp[np.argmax(pi)] = 1
             pi = temp
+        else:
+            return pi
+        # T = T - ((1 / config.TURNS_UNTIL_TAU0) * (turn+1))
+        # if T <= .1:
+        #     T = 0
+        #     temp = np.zeros(shape=pi.shape)
+        #     temp[np.argmax(pi)] = 1
+        #     pi = temp
+        # else:
+        #     pi = pi**(1 / T)
+        #     pol_sum = (np.sum(pi) * 1.0)
+        #     if pol_sum != 0:
+        #         pi = pi / pol_sum
 
         return pi
 
@@ -357,15 +425,17 @@ class MCTSnet:
             is_root = True
         else:
             is_root = False
+        # might want to use uncorrected policy, idk
         pi = self.correct_policy(logits, joint_state, is_root=is_root)
+        # if sim == 1:
+        # I think I actually want this to be the last sim since I want the most recent
+        # output from the policy net
 
         idx = np.random.choice(len(self.actions), p=pi)
 
         action = self.actions[idx]
         memory["policy"]["output"].append({
-            "log_action_prob": F.log_softmax(logits, dim=0)[idx], 
-            "value": value, 
-            "is_root": is_root
+            "log_action_prob": F.log_softmax(logits, dim=0)[idx], "value": value, "is_root": is_root
         })
 
         return action
@@ -412,6 +482,19 @@ class MCTSnet:
     def optim_step(self):
         for _, optim in self.optims.items():
             optim.step()
+
+    # todo: update model to use CLR and stuff
+    # https://github.com/fastai/fastai/blob/master/fastai/learner.py
+    # def save(self):
+    #     for name, model in self.models.items():
+    #         torch.save(model, "checkpoints/%s.t7" % (name + "_tmp"))
+    # def load(self):
+    #     for name, model in self.models.items():
+    #         torch.load(model, "checkpoints/%s.t7" % (name + "_tmp"))
+
+    # def find_lr(self):
+    #     self.save()
+        # layer_opt = self.get_layer_opt
 
     def train(self, minibatches, last_loop=False):
         for e in range(config.EPOCHS):
