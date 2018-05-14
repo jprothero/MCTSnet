@@ -114,7 +114,6 @@ class MCTSnet:
 
                 state_np, result, game_over = self.transition_and_evaluate(state_np, action)
                 state = self.convert_to_torch(state_np)
-                print(curr_player)
 
             if result == -1:
                 player = (curr_player + 1) % 2
