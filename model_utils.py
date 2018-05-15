@@ -24,7 +24,8 @@ def load_model(cuda=torch.cuda.is_available()):
         model = torch.load('checkpoints/models/MCTSnet.t7')
         print('Loaded best model')
         return model
-    except:
+    except Exception as e:
+        print(e)
         model = MCTSnet(config.R, config.C)
         print('Initializing new weights')
 

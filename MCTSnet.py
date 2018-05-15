@@ -45,7 +45,7 @@ class MCTSnet:
             self.best = self.best.cuda()
 
     def self_play(self, root_state, best_only=True, 
-        num_episodes=config.NUM_EPISODES, deterministic=False):
+        num_episodes=config.NUM_EPISODES, deterministic=False, vs_human=False):
         self.best.eval()
         self.new.eval()
 
@@ -58,6 +58,10 @@ class MCTSnet:
             order = [self.best, self.best]
             name_order = ["best", "best"]
             az_order = [best_az, new_az]
+        elif vs_human:
+            order = [None, self.best]
+            name_order = ["human", "best"]
+            az_order = [None, best_az]
         else:
             if np.random.uniform() > .5:
                 order = [self.best, self.new]
@@ -102,51 +106,53 @@ class MCTSnet:
                 other_az = az_order[(curr_player+1)%2]
                 # if ((state_np[0] + state_np[1]) > 1).any():
                 
-
-                for _ in range(config.NUM_SIMS):
-                    #need to change result so that it is updated based on if the player that starting the sim (root state)
-                    #matchs
-                    sim_state = state.clone() 
-                    sim_state_np = np.array(state_np)
-                    # print(sim_state_np)
-                    # set_trace()
-
-                    sim_state_np, result, sim_over = az.select(sim_state_np, self.transition_and_evaluate)
-
-                    if sim_over and sim_state_np[2][0][0] != starting_player and result != 0:
-                        result *= -1
-
-                    sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
-
-                    policy, value = net(sim_state)
-                    policy = policy.squeeze().detach()
-                    if self.has_cuda:
-                        policy = policy.cpu()
-                    
-                    policy = policy.numpy()
-                    value = value.detach().squeeze().item()
-
-                    if result is not None:
-                        value = result
-
-                    if not sim_over:
-                        az.expand(policy, sim_state_np, self.correct_policy)
-
-                    az.backup(value)
-
-                action, search_probas = az.select_real()
-
-                if other_az.curr_node["children"] is not None:
-                    other_az.curr_node = other_az.curr_node["children"][action]
-                    other_az.curr_node["parent"] = None
+                if vs_human and name_order[curr_player] is "human":
+                    action = self.choose_column()
                 else:
-                    other_az.reset()
+                    for _ in range(config.NUM_SIMS):
+                        #need to change result so that it is updated based on if the player that starting the sim (root state)
+                        #matchs
+                        sim_state = state.clone() 
+                        sim_state_np = np.array(state_np)
+                        # print(sim_state_np)
+                        # set_trace()
 
-                episode_memories.append({
-                    "state": state.clone(),
-                    "search_probas": torch.tensor(search_probas).float(),
-                    "curr_player": curr_player
-                })
+                        sim_state_np, result, sim_over = az.select(sim_state_np, self.transition_and_evaluate)
+
+                        if sim_over and sim_state_np[2][0][0] != starting_player and result != 0:
+                            result *= -1
+
+                        sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
+
+                        policy, value = net(sim_state)
+                        policy = policy.squeeze().detach()
+                        if self.has_cuda:
+                            policy = policy.cpu()
+                        
+                        policy = policy.numpy()
+                        value = value.detach().squeeze().item()
+
+                        if result is not None:
+                            value = result
+
+                        if not sim_over:
+                            az.expand(policy, sim_state_np, self.correct_policy)
+
+                        az.backup(value)
+
+                    action, search_probas = az.select_real()
+
+                    if other_az.curr_node["children"] is not None:
+                        other_az.curr_node = other_az.curr_node["children"][action]
+                        other_az.curr_node["parent"] = None
+                    else:
+                        other_az.reset()
+
+                    episode_memories.append({
+                        "state": state.clone(),
+                        "search_probas": torch.tensor(search_probas).float(),
+                        "curr_player": curr_player
+                    })
 
                 # state_np1, result1, game_over1 = self.transition_and_evaluate(state_np, action)
                 # if result1 is not None:
@@ -217,17 +223,18 @@ class MCTSnet:
         elif scoreboard["new"]*config.SCORING_THRESHOLD < scoreboard["best"]:
             self.new = model_utils.load_model()
 
-    # def choose_row(self):
-    #     while True:
-    #         try:
-    #             inp = int(input("Pick a row, 1-7: "))
-    #             inp -= 1
-    #             return inp
-    #         except Exception as e:
-    #             print("Invalid choice.")
+    def choose_column(self):
+        while True:
+            try:
+                inp = int(input("Pick a column, 1-7: "))
+                inp -= 1
+                return inp
+            except Exception as e:
+                print("Invalid choice.")
 
-    # def play_cpu(self, root_state):
-    #     state = np
+    def play_cpu(self, root_state):
+        state = np.array(root_state)
+
 
     # def play_cpu(self, root_state, curr_player=0):
     #     self.best.eval()
