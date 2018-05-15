@@ -44,7 +44,7 @@ class MCTSnet:
             self.new = self.new.cuda()
             self.best = self.best.cuda()
 
-    def self_play(self, root_state, best_only=False, deterministic=False):
+    def self_play(self, root_state, best_only=True, deterministic=False):
         self.best.eval()
         self.new.eval()
 
