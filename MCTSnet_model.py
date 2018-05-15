@@ -60,33 +60,50 @@ class MCTSnet(nn.Module):
     def forward(self, state):
         embedding = F.tanh(self.emb_net(state))
         
-        history = embedding
-        cont = True
+        continues = [i for i in range(state.shape[0])]
+        history = embedding.clone()
         i = 0
         #consider adding adversarial loss to get history, simulation, and embedding in the same domain
-        while cont:
-            noise = (torch.rand_like(history)-.5)*2
+        while len(continues) > 0:
+            noise = (torch.rand_like(history[continues])-.5)*2
             if self.has_cuda:
                 noise = noise.cuda()
-            sim_inp = torch.cat([history, noise], dim=1)
+            sim_inp = torch.cat([history[continues], noise], dim=1)
             simulation = F.tanh(self.simulation_net(sim_inp))
             # simulation = F.tanh(self.exploitation_net(history) + self.exploration_net(noise) + \
             #     self.exploration_net(history))
 
-            chance = self.continue_head(simulation).squeeze()
-            cont = np.random.choice(2, p=[1-chance.item(), chance.item()])
-            forget_inp = torch.cat([simulation, history], dim=1)
+            chance = self.continue_head(simulation)
+
+            #sooo the issue is that we are changing history, but it cant be changed
+            #because we need the original
+            #
+            
+            new_continues = []
+            chance_mul = []
+            opposite_chance_mul = []
+            for i, p in enumerate(chance):
+                p = p.squeeze().item()
+                if np.random.choice(2, p=[1-p, p]):
+                    new_continues.append(i)
+                chance_mul.append(p)
+                opposite_chance_mul.append(1-p)
+            chance_mul = torch.tensor(chance_mul).view(-1, 1, 1, 1)
+            opposite_chance_mul = torch.tensor(opposite_chance_mul).view(-1, 1, 1, 1)
+
+            forget_inp = torch.cat([simulation, history[continues]], dim=1)
             forget = F.sigmoid(self.forget_net(forget_inp) + self.forget_bias)
-            update = chance*simulation + (1 - chance)*embedding
-            history = history*forget + (1-forget)*update
+            update = chance_mul*simulation + opposite_chance_mul*embedding[continues]
+            history[continues] = history[continues]*forget + (1-forget)*update
+            continues = new_continues
             i += 1
             if i > self.max_sims:
                 break
 
         policy_val_inp = torch.cat([embedding, history], dim=1)
         combine = self.policy_net(policy_val_inp)
+        # value = self.value_head(policy_val_inp)
         value = self.value_head(policy_val_inp)
-        value = value.squeeze()
         
         policy = F.softmax(combine, dim=1)
 

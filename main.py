@@ -24,7 +24,7 @@ memories = utils.load_memories()
 trainer = Trainer()
 
 while True:
-    new_memories = mctsnet.self_play(root_state)
+    new_memories, _ = mctsnet.self_play(root_state)
     memories.extend(new_memories)
 
     utils.save_memories(memories)

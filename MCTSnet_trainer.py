@@ -13,6 +13,7 @@ from fastai.sgdr import *
 from torch import optim
 
 import numpy as np
+from ipdb import set_trace
 
 class Trainer:
     def __init__(self, cuda=torch.cuda.is_available()):
@@ -23,6 +24,7 @@ class Trainer:
         return self.train(self.net, self.memories)
 
     def train(self, net, memories):
+        net.forward = net.real_forward
         net.eval()
         minibatch = sample(memories, min(config.BATCH_SIZE, len(memories)))
 
@@ -35,8 +37,8 @@ class Trainer:
             results.append(memory["result"])
             search_probas.append(memory["search_probas"])
 
-        states = torch.cat(states)
-        results = torch.cat(results)
+        states = torch.cat(states, dim=0)
+        results = torch.tensor(results).float().unsqueeze(-1)
         search_probas = torch.cat(search_probas)
 
         if self.has_cuda:
@@ -46,12 +48,15 @@ class Trainer:
             net = net.cuda()
 
         policies, values = net(states)
+        policies = policies.view(-1)
 
         value_loss = F.mse_loss(values, results)
         policy_loss = -search_probas.unsqueeze(0) @ torch.log(policies.unsqueeze(-1))
         policy_loss /= len(minibatch)
 
         total_loss = value_loss + policy_loss
+
+        net.forward = lambda x: x
 
         return total_loss
 
@@ -64,17 +69,17 @@ class Trainer:
             return
 
         net_wrapped = FastaiWrapper(model=net, crit=self.train_wrapper)
-        net_wrapped = Learner(data=self.fake_data, models=net_wrapped)
-        net_wrapped.crit = net_wrapped.crit
-        net_wrapped.opt_fn = optim.Adam
-        net_wrapped.model.train()
+        learner = Learner(data=self.fake_data, models=net_wrapped)
+        learner.crit = net_wrapped.crit
+        learner.opt_fn = optim.Adam
+        learner.model.train()
 
-        net_wrapped.model.real_forward = net_wrapped.model.forward
+        learner.model.real_forward = learner.model.forward
 
-        net_wrapped.model.forward = lambda x: x
-        net_wrapped.fit(8e-3, epochs, wds=1e-7) #was 7e-2
+        learner.model.forward = lambda x: x
+        learner.fit(8e-3, epochs, wds=1e-7) #was 7e-2
 
-        net_wrapped.model.forward = net_wrapped.model.real_forward
+        learner.model.forward = learner.model.real_forward
 
         del self.memories
         del self.net

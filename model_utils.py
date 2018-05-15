@@ -15,18 +15,18 @@ def setup_optim(model):
 
     return model_opt
 
-def save_model(model, model_name="MCTSnet"):
-    torch.save(model, "checkpoints/models/%s.t7" % model_name)
-    print('Successfully saved parameters for the best %s' % model_name)
+def save_model(model):
+    torch.save(model, "checkpoints/models/MCTSnet.t7")
+    print('New best model saved')
 
-def load_model(model_name="MCTSnet", cuda=torch.cuda.is_available()):
+def load_model(cuda=torch.cuda.is_available()):
     try:
-        model = torch.load('checkpoints/models/%s.t7' % (model_name))
-        print('Successfully loaded parameters for the best %s' % model_name)
+        model = torch.load('checkpoints/models/MCTSnet.t7')
+        print('Loaded best model')
         return model
     except:
         model = MCTSnet(config.R, config.C)
-        print('Initializing new Network Weights for %s' % model_name)
+        print('Initializing new weights')
 
     if cuda:
         model = model.cuda()

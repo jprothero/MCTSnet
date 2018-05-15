@@ -44,7 +44,8 @@ class MCTSnet:
             self.new = self.new.cuda()
             self.best = self.best.cuda()
 
-    def self_play(self, root_state, best_only=True, deterministic=False):
+    def self_play(self, root_state, best_only=True, 
+        num_episodes=config.NUM_EPISODES, deterministic=False):
         self.best.eval()
         self.new.eval()
 
@@ -76,7 +77,7 @@ class MCTSnet:
         memories = []
         np.set_printoptions(precision=3)
         # sim_state_np[0] + sim_state_np[1] + np.reshape(policy, (6, 7)) #for debugging
-        for _ in tqdm(range(config.NUM_EPISODES)):
+        for _ in tqdm(range(num_episodes)):
             game_over = False
 
             state_np = np.array(root_state)
@@ -92,6 +93,7 @@ class MCTSnet:
             starting_player = (starting_player+1)%2
             curr_player = starting_player
             i = 0
+            episode_memories = []
             while not game_over:
                 if i > 0: curr_player = (curr_player+1)%2
 
@@ -122,7 +124,7 @@ class MCTSnet:
                         policy = policy.cpu()
                     
                     policy = policy.numpy()
-                    value = value.detach().item()
+                    value = value.detach().squeeze().item()
 
                     if result is not None:
                         value = result
@@ -140,9 +142,9 @@ class MCTSnet:
                 else:
                     other_az.reset()
 
-                memories.append({
+                episode_memories.append({
                     "state": state.clone(),
-                    "search_probas": torch.tensor(search_probas),
+                    "search_probas": torch.tensor(search_probas).float(),
                     "curr_player": curr_player
                 })
 
@@ -154,7 +156,7 @@ class MCTSnet:
                 #     set_trace()
                 state_np, result, game_over = self.transition_and_evaluate(state_np, action)
                 assert ((state_np[0] + state_np[1]) < 2).all()
-                state = self.convert_to_torch(state_np)
+                state = self.convert_to_torch(state_np).unsqueeze(0)
                 # print(name_order[curr_player], "Best Only: "+str(best_only))
 
                 i += 1
@@ -171,10 +173,12 @@ class MCTSnet:
             else:
                 scoreboard["draws"] += 1                                
 
-            for memory in memories:
+            for memory in episode_memories:
                 if memory["curr_player"] != curr_player and result != 0:
                     result *= -1
                 memory["result"] = result
+
+            memories.extend(episode_memories)
 
         if not best_only:
             print("{} Wins: {}\n{} Wins: {}\n Draws: {}".format(name_order[0], scoreboard[name_order[0]],
@@ -204,7 +208,8 @@ class MCTSnet:
         return state
 
     def tournament(self, root_state):
-        _, scoreboard = self.self_play(root_state, best_only=False, deterministic=True)
+        _, scoreboard = self.self_play(root_state, best_only=False, 
+            num_episodes=config.NUM_TOURNAMENT_EPISODES, deterministic=True)
 
         if scoreboard["new"] > scoreboard["best"]*config.SCORING_THRESHOLD:
             model_utils.save_model(self.new)
