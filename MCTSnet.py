@@ -76,11 +76,6 @@ class MCTSnet:
         if self.has_cuda:
             self.best = self.best.cuda()
             self.new = self.new.cuda()
-            print("cuda set")
-
-            assert self.has_cuda
-            assert self.best.has_cuda
-            assert self.new.has_cuda
 
         memories = []
         np.set_printoptions(precision=3)

@@ -66,7 +66,6 @@ class MCTSnet(nn.Module):
             noise = (torch.rand_like(history)-.5)*2
             if self.has_cuda:
                 noise = noise.cuda()
-                print("In Cuda forward")
             simulation = F.tanh(self.exploitation_net(history) + self.exploration_net(noise) + \
                 self.exploration_net(history))
 

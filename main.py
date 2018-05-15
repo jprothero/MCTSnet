@@ -17,7 +17,7 @@ root_state = np.zeros(shape=(3, 6, 7), dtype="float32")
 iteration = 0
 
 mctsnet = MCTSnet(actions=actions, get_legal_actions=get_legal_actions,
-    transition_and_evaluate=transition_and_evaluate, cuda=False)
+    transition_and_evaluate=transition_and_evaluate)
 
 memories = utils.load_memories()
 
