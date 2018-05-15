@@ -20,7 +20,7 @@ class Trainer:
         self.has_cuda = cuda
 
     def train_wrapper(self, _, __):
-        self.train(self.net, self.memories)
+        return self.train(self.net, self.memories)
 
     def train(self, net, memories):
         net.eval()
