@@ -13,32 +13,34 @@ class MCTSnet(nn.Module):
         self.has_cuda = cuda
         self.max_sims = max_sims
         ng = model_config.NUM_GROUPS
-        k = model_config.k
-        n = model_config.N
+        k = model_config.MULTIPLIER
+        n = model_config.NUM_LAYERS
 
-        self.num_channels = model_config.BASE_CHANNELS*model_config.NUM_GROUPS*model_config.k
+        small_ng = model_config.SMALL_NG
+        small_k = model_config.SMALL_K
+        small_n = model_config.SMALL_N
 
-        reducer = model_config.REDUCER
+        self.num_channels = model_config.BASE_CHANNELS*ng*k
 
         self.emb_net = WideResNet(num_groups=ng, N=n, k=k, in_channels=config.CH)
         # self.exploitation_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128)
         # self.exploration_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128)
         self.simulation_net = WideResNet(num_groups=ng, N=n, k=k, in_channels=self.num_channels*2)
         self.value_head = nn.Sequential(*[
-            WideResNet(num_groups=ng-reducer, N=n-reducer, k=k-reducer, num_classes=value_bottleneck, in_channels=self.num_channels*2),
+            WideResNet(num_groups=small_ng, N=small_n, k=small_k, num_classes=value_bottleneck, in_channels=self.num_channels*2),
             nn.Linear(value_bottleneck, 1),
             nn.Tanh()
         ])
 
         self.continue_head = nn.Sequential(*[
-            WideResNet(num_groups=ng-reducer, N=n-reducer, k=k-reducer, num_classes=value_bottleneck, in_channels=self.num_channels),
+            WideResNet(num_groups=ng, N=n, k=k, num_classes=value_bottleneck, in_channels=self.num_channels),
             nn.Linear(value_bottleneck, 1),
             nn.Sigmoid()
         ])
 
         self.forget_net = WideResNet(num_groups=ng, N=n, k=k, in_channels=self.num_channels*2)
         self.policy_net = nn.Sequential(*[
-            WideResNet(num_groups=ng, N=n, k=k, num_classes=policy_bottleneck, in_channels=self.num_channels*2)
+            WideResNet(num_groups=small_ng, N=small_n, k=small_k, num_classes=policy_bottleneck, in_channels=self.num_channels*2)
             , nn.Linear(policy_bottleneck, R*C)
             ])
 
@@ -87,6 +89,12 @@ class MCTSnet(nn.Module):
 
             #sooo the issue is that we are changing history, but it cant be changed
             #because we need the original
+            #so what is the core idea I have
+            #basically I want to look at a state, make an embedding
+            #and then we look at that, and "imagine" another embedding,
+            #i.e. something we want to think about
+            #then we combine those embeddings to get a better idea of the value
+            #
             #
             
             new_continues = []
