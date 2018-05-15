@@ -97,7 +97,11 @@ class MCTSnet:
                     sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
 
                     policy, value = net(sim_state)
-                    policy = policy.squeeze().detach().numpy()
+                    policy = policy.squeeze().detach()
+                    if self.has_cuda:
+                        policy = policy.cpu()
+                    
+                    policy = policy.numpy()
                     value = value.detach().item()
 
                     if result is not None:
