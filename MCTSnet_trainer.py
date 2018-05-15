@@ -77,7 +77,7 @@ class Trainer:
         learner.model.real_forward = learner.model.forward
 
         learner.model.forward = lambda x: x
-        learner.fit(8e-3, epochs, wds=1e-7) #was 7e-2
+        learner.fit(5e-3, epochs, wds=1e-7) #was 7e-2
 
         learner.model.forward = learner.model.real_forward
 
@@ -86,7 +86,7 @@ class Trainer:
         del net_wrapped.model.real_forward
         del net_wrapped
 
-def create_fake_data(num_batches=20):
+def create_fake_data(num_batches=config.TRAINING_LOOPS):
     classes = ('plane', 'car', 'bird', 'cat', 'deer',
         'dog', 'frog', 'horse', 'ship', 'truck')
 
