@@ -148,7 +148,7 @@ class MCTSnet:
                         other_az.reset()
 
                     episode_memories.append({
-                        "state": state.clone(),
+                        "state": torch.tensor(state_np).float(),
                         "search_probas": torch.tensor(search_probas).float(),
                         "curr_player": curr_player
                     })

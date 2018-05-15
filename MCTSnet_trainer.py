@@ -16,9 +16,9 @@ import numpy as np
 from ipdb import set_trace
 
 class Trainer:
-    def __init__(self, cuda=torch.cuda.is_available()):
-        self.fake_data = create_fake_data(num_batches=config.NUM_BATCHES_PER_TRAINING)
-        self.has_cuda = cuda
+    def __init__(self):
+        self.fake_data = create_fake_data(num_batches=config.TRAINING_LOOPS)
+        self.has_cuda = config.CUDA
 
     def train_wrapper(self, _, __):
         return self.train(self.net, self.memories)
@@ -59,6 +59,27 @@ class Trainer:
         net.forward = lambda x: x
 
         return total_loss
+
+    def lr_find(self, net, memories, start_lr=1e-5, end_lr=1):
+        self.memories = memories
+        if (len(memories) < config.BATCH_SIZE):
+            print("Have {} memories, need {}".format(len(memories), config.BATCH_SIZE))
+            return
+
+        net_wrapped = FastaiWrapper(model=net, crit=self.train_wrapper)
+
+        net_wrapped.model.real_forward = net_wrapped.model.forward
+        net_wrapped.model.forward = lambda x: x
+
+        learner = Learner(data=self.fake_data, models=net_wrapped)
+        learner.opt_fn = optim.Adam
+        learner.crit = net_wrapped.crit
+        learner.model.train()
+
+        learner.lr_find(start_lr=start_lr, end_lr=end_lr)
+        learner.model.forward = learner.model.real_forward
+
+        return learner
 
     def fastai_train(self, net, memories, num_cycles=10, epochs=1):
         self.memories = memories
@@ -108,5 +129,7 @@ class FastaiWrapper():
     
     def get_layer_groups(self, precompute=False):
         return self.model
+
+
 
 
