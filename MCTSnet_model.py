@@ -4,32 +4,41 @@ import numpy as np
 import torch.nn.functional as F
 import torch
 from ipdb import set_trace
+import model_config
+import config
 
 class MCTSnet(nn.Module):
     def __init__(self, R, C, value_bottleneck=2, policy_bottleneck=2, max_sims=3, cuda=torch.cuda.is_available()):
         super(MCTSnet, self).__init__()
         self.has_cuda = cuda
         self.max_sims = max_sims
+        ng = model_config.NUM_GROUPS
+        k = model_config.k
+        n = model_config.N
 
-        self.emb_net = WideResNet(num_groups=2, N=2, k=4, in_channels=3)
+        self.num_channels = model_config.BASE_CHANNELS*model_config.NUM_GROUPS*model_config.k
+
+        reducer = model_config.REDUCER
+
+        self.emb_net = WideResNet(num_groups=ng, N=n, k=k, in_channels=config.CH)
         # self.exploitation_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128)
         # self.exploration_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128)
-        self.simulation_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128*2)
+        self.simulation_net = WideResNet(num_groups=ng, N=n, k=k, in_channels=self.num_channels*2)
         self.value_head = nn.Sequential(*[
-            WideResNet(num_groups=1, N=1, k=2, num_classes=value_bottleneck, in_channels=128*2),
+            WideResNet(num_groups=ng-reducer, N=n-reducer, k=k-reducer, num_classes=value_bottleneck, in_channels=self.num_channels*2),
             nn.Linear(value_bottleneck, 1),
             nn.Tanh()
         ])
 
         self.continue_head = nn.Sequential(*[
-            WideResNet(num_groups=1, N=1, k=2, num_classes=value_bottleneck, in_channels=128),
+            WideResNet(num_groups=ng-reducer, N=n-reducer, k=k-reducer, num_classes=value_bottleneck, in_channels=self.num_channels),
             nn.Linear(value_bottleneck, 1),
             nn.Sigmoid()
         ])
 
-        self.forget_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128*2)
+        self.forget_net = WideResNet(num_groups=ng, N=n, k=k, in_channels=self.num_channels*2)
         self.policy_net = nn.Sequential(*[
-            WideResNet(num_groups=1, N=1, k=2, num_classes=policy_bottleneck, in_channels=128*2)
+            WideResNet(num_groups=ng, N=n, k=k, num_classes=policy_bottleneck, in_channels=self.num_channels*2)
             , nn.Linear(policy_bottleneck, R*C)
             ])
 
@@ -44,8 +53,9 @@ class MCTSnet(nn.Module):
             self.policy_net,
         ]
 
-        #the 128 will change if we alter the wideresnet parameters
-        self.forget_bias = nn.Parameter(torch.log(torch.rand(128, R, C)*(max_sims-2) + 1))
+        #the 128 will change if we alter the wideresnet parameters 
+        assert max_sims > 2
+        self.forget_bias = nn.Parameter(torch.log(torch.rand(self.num_channels, R, C)*(max_sims-2) + 1))
 
         self.initialize()
 
