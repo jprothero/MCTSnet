@@ -11,7 +11,7 @@ class MCTSnet(nn.Module):
     def __init__(self):
         super(MCTSnet, self).__init__()
         self.has_cuda = config.CUDA
-        
+
         self.max_sims = model_config.MAX_SIMS
         ng = model_config.NUM_GROUPS
         k = model_config.MULTIPLIER
@@ -58,9 +58,8 @@ class MCTSnet(nn.Module):
             self.policy_net,
         ]
 
-        #the 128 will change if we alter the wideresnet parameters 
-        assert max_sims > 2
-        self.forget_bias = nn.Parameter(torch.log(torch.rand(self.num_channels, R, C)*(max_sims-2) + 1))
+        assert self.max_sims > 2
+        self.forget_bias = nn.Parameter(torch.log(torch.rand(self.num_channels, config.R, config.C)*(self.max_sims-2) + 1))
 
         self.initialize()
 
