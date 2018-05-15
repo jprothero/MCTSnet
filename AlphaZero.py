@@ -31,6 +31,8 @@ class AlphaZero:
             choice_idx = self.curr_node["max_uct_idx"]
             self.curr_node = self.curr_node["children"][choice_idx]
             state, result, sim_over = transition_and_evaluate(state, choice_idx)
+            # print(state)
+            # set_trace()
         return state, result, sim_over
 
     def select_real(self):
@@ -64,7 +66,7 @@ class AlphaZero:
         if self.curr_node["parent"] is None:
             policy = self.add_dirichlet_noise(policy)
 
-        policy = self.correct_policy(policy, sim_state_np)
+        policy = correct_policy(policy, sim_state_np)
 
         for p in policy:
             child = {

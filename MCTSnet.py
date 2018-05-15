@@ -84,16 +84,16 @@ class MCTSnet:
                 curr_player = curr_player % 2
                 net = order[curr_player]
 
-                sim_state = state.clone() 
-                sim_state_np = np.array(state_np)
-
                 for _ in range(num_sims):
+                    sim_state = state.clone() 
+                    sim_state_np = np.array(state_np)
+
                     sim_state_np, result, sim_over = az.select(sim_state_np, self.transition_and_evaluate)
 
                     sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
 
                     policy, value = net(sim_state)
-                    policy = policy.squeeze().detach()
+                    policy = policy.squeeze().detach().numpy()
                     value = value.detach().item()
 
                     if result is not None:
@@ -112,18 +112,15 @@ class MCTSnet:
                     "curr_player": curr_player
                 })
 
-                set_trace()
                 state_np, result, game_over = self.transition_and_evaluate(state_np, action)
-                print(sim_state_np)
-                print(curr_player)
                 state = self.convert_to_torch(state_np)
+                # print(state_np)
+                # set_trace()
 
             if result == -1:
                 player = (curr_player + 1) % 2
             else:
                 player = curr_player
-
-            print(player)
 
             scoreboard[name_order[player]] += 1
 
@@ -139,17 +136,15 @@ class MCTSnet:
 
     def correct_policy(self, policy, state):
         # state = np.reshape(state, newshape=tuple(state.shape[1:]))
-        mask = torch.zeros_like(policy)
+        mask = np.zeros(shape=policy.shape)
         legal_actions = self.get_legal_actions(state[:2])
         mask[legal_actions] = 1
         policy = policy * mask
 
-        pol_sum = (policy.sum() * 1.0)
+        pol_sum = np.sum(policy) * 1.0
 
         if pol_sum != 0:
             policy = policy / pol_sum
-
-        policy = policy.detach().numpy()
 
         return policy
 
