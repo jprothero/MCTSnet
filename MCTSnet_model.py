@@ -91,6 +91,10 @@ class MCTSnet(nn.Module):
             chance_mul = torch.tensor(chance_mul).view(-1, 1, 1, 1)
             opposite_chance_mul = torch.tensor(opposite_chance_mul).view(-1, 1, 1, 1)
 
+            if self.has_cuda:
+                chance_mul = chance_mul.cuda()
+                opposite_chance_mul = opposite_chance_mul.cuda()
+
             forget_inp = torch.cat([simulation, history[continues]], dim=1)
             forget = F.sigmoid(self.forget_net(forget_inp) + self.forget_bias)
             update = chance_mul*simulation + opposite_chance_mul*embedding[continues]
