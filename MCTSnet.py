@@ -133,7 +133,7 @@ class MCTSnet:
                 memory["result"] = result
 
         if not best_only:
-            print(f"Best Wins: {scoreboard['best']}, Challenger Wins: {scoreboard['new']}")
+            print("Best Wins: {}, Challenger Wins: {}".format(scoreboard['best'], scoreboard['new']))
 
         return memories, scoreboard
 

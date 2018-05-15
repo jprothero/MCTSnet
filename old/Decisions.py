@@ -1,5 +1,4 @@
 import torch.nn as nn
-from .qrnn import QRNN
 from torch.nn import functional as F
 from torch.distributions import Categorical
 import torch
