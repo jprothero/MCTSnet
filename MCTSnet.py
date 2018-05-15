@@ -217,74 +217,74 @@ class MCTSnet:
         elif scoreboard["new"]*config.SCORING_THRESHOLD < scoreboard["best"]:
             self.new = model_utils.load_model()
 
-    def choose_row(self):
-        while True:
-            try:
-                inp = int(input("Pick a row, 1-7: "))
-                inp -= 1
-                return inp
-            except Exception as e:
-                print("Invalid choice.")
+    # def choose_row(self):
+    #     while True:
+    #         try:
+    #             inp = int(input("Pick a row, 1-7: "))
+    #             inp -= 1
+    #             return inp
+    #         except Exception as e:
+    #             print("Invalid choice.")
 
-    def play_cpu(self, root_state):
-        state = np
+    # def play_cpu(self, root_state):
+    #     state = np
 
-    def play_cpu(self, root_state, curr_player=0):
-        self.best.eval()
+    # def play_cpu(self, root_state, curr_player=0):
+    #     self.best.eval()
 
-        root_state = np.array(root_state, dtype="float32")
-        joint_state = [np.copy(root_state), np.copy(root_state)]
-        results = dict()
-        results["player_one"] = 0
-        results["player_two"] = 0
-        results["draw"] = 0
-        np.set_printoptions(precision=3)
+    #     root_state = np.array(root_state, dtype="float32")
+    #     joint_state = [np.copy(root_state), np.copy(root_state)]
+    #     results = dict()
+    #     results["player_one"] = 0
+    #     results["player_two"] = 0
+    #     results["draw"] = 0
+    #     np.set_printoptions(precision=3)
 
-        game_over = False
-        joint = np.copy(joint_state)
-        while not game_over:
-            legal_actions = self.get_legal_actions(joint)
-            if len(legal_actions) == 0:
-                results["draw"] += 1
-                break
-            if curr_player == 0:
-                joint_copy = np.copy(joint)
-                blank = [["_" for _ in range(7)] for _ in range(6)]
-                # dsp = np.array(blank, dtype=object)
-                m1 = np.ma.masked_where(joint_copy[0] > 0, blank)
-                np.ma.set_fill_value(m1, "O")
-                m1 = m1.filled()
-                m2 = np.ma.masked_where(joint_copy[1] > 0, m1)
-                np.ma.set_fill_value(m2, "X")
-                m2 = m2.filled()
-                print(m2)
+    #     game_over = False
+    #     joint = np.copy(joint_state)
+    #     while not game_over:
+    #         legal_actions = self.get_legal_actions(joint)
+    #         if len(legal_actions) == 0:
+    #             results["draw"] += 1
+    #             break
+    #         if curr_player == 0:
+    #             joint_copy = np.copy(joint)
+    #             blank = [["_" for _ in range(7)] for _ in range(6)]
+    #             # dsp = np.array(blank, dtype=object)
+    #             m1 = np.ma.masked_where(joint_copy[0] > 0, blank)
+    #             np.ma.set_fill_value(m1, "O")
+    #             m1 = m1.filled()
+    #             m2 = np.ma.masked_where(joint_copy[1] > 0, m1)
+    #             np.ma.set_fill_value(m2, "X")
+    #             m2 = m2.filled()
+    #             print(m2)
 
-                row = self.choose_row()
-                idx = legal_actions[row]
-                action = self.actions[idx]
-            else:
-                pi, _ = self.run_simulations(
-                    joint, curr_player, 0)
+    #             row = self.choose_row()
+    #             idx = legal_actions[row]
+    #             action = self.actions[idx]
+    #         else:
+    #             pi, _ = self.run_simulations(
+    #                 joint, curr_player, 0)
 
-                print(pi)
+    #             print(pi)
 
-                pi = self.apply_temp_to_policy(pi, 0, T=0)
+    #             pi = self.apply_temp_to_policy(pi, 0, T=0)
 
-                idx = np.random.choice(len(self.actions), p=pi)
+    #             idx = np.random.choice(len(self.actions), p=pi)
 
-                action = self.actions[idx]
+    #             action = self.actions[idx]
 
-            joint[curr_player] = self.transition(joint[curr_player],
-                                                 action)
-            reward, game_over = self.calculate_reward(joint)
+    #         joint[curr_player] = self.transition(joint[curr_player],
+    #                                              action)
+    #         reward, game_over = self.calculate_reward(joint)
 
-            if game_over:
-                if reward == -1:
-                    results["player_two"] += 1
-                elif reward == 1:
-                    results["player_one"] += 1
-            else:
-                curr_player += 1
-                curr_player = curr_player % 2
+    #         if game_over:
+    #             if reward == -1:
+    #                 results["player_two"] += 1
+    #             elif reward == 1:
+    #                 results["player_one"] += 1
+    #         else:
+    #             curr_player += 1
+    #             curr_player = curr_player % 2
 
-        print(results)
+    #     print(results)
