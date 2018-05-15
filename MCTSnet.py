@@ -28,17 +28,16 @@ class MCTSnet:
                  actions,
                  get_legal_actions,
                  transition_and_evaluate,
-                 cuda=torch.cuda.is_available(),
                  best=False):
         utils.create_folders()
-        self.has_cuda = cuda
+        self.has_cuda = config.CUDA
 
         self.actions = actions
         self.get_legal_actions = get_legal_actions
         self.transition_and_evaluate = transition_and_evaluate
 
-        self.new = model_utils.load_model(cuda=cuda)
-        self.best = model_utils.load_model(cuda=cuda)
+        self.new = model_utils.load_model()
+        self.best = model_utils.load_model()
         
         if self.has_cuda: 
             self.new = self.new.cuda()
