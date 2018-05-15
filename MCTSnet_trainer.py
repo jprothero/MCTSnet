@@ -25,7 +25,7 @@ class Trainer:
 
     def train(self, net, memories):
         net.forward = net.real_forward
-        net.eval()
+        net.train()
         minibatch = sample(memories, min(config.BATCH_SIZE, len(memories)))
 
         states = []
