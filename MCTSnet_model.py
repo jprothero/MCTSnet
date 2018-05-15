@@ -16,7 +16,7 @@ class MCTSnet(nn.Module):
         # self.exploration_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128)
         self.simulation_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128*2)
         self.value_head = nn.Sequential(*[
-            WideResNet(num_groups=1, N=1, k=2, num_classes=value_bottleneck, in_channels=128),
+            WideResNet(num_groups=1, N=1, k=2, num_classes=value_bottleneck, in_channels=128*2),
             nn.Linear(value_bottleneck, 1),
             nn.Tanh()
         ])
@@ -27,9 +27,9 @@ class MCTSnet(nn.Module):
             nn.Sigmoid()
         ])
 
-        self.forget_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128)
+        self.forget_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128*2)
         self.policy_net = nn.Sequential(*[
-            WideResNet(num_groups=1, N=1, k=2, num_classes=policy_bottleneck, in_channels=128)
+            WideResNet(num_groups=1, N=1, k=2, num_classes=policy_bottleneck, in_channels=128*2)
             , nn.Linear(policy_bottleneck, R*C)
             ])
 
