@@ -68,14 +68,14 @@ class MCTSnet(nn.Module):
             noise = (torch.rand_like(history)-.5)*2
             if self.has_cuda:
                 noise = noise.cuda()
-            sim_inp = torch.cat([history, noise])
+            sim_inp = torch.cat([history, noise], dim=1)
             simulation = F.tanh(self.simulation_net(sim_inp))
             # simulation = F.tanh(self.exploitation_net(history) + self.exploration_net(noise) + \
             #     self.exploration_net(history))
 
             chance = self.continue_head(simulation).squeeze()
             cont = np.random.choice(2, p=[1-chance.item(), chance.item()])
-            forget_inp = torch.cat([simulation, history])
+            forget_inp = torch.cat([simulation, history], dim=1)
             forget = F.sigmoid(self.forget_net(forget_inp) + self.forget_bias)
             update = chance*simulation + (1 - chance)*embedding
             history = history*forget + (1-forget)*update
@@ -83,14 +83,12 @@ class MCTSnet(nn.Module):
             if i > self.max_sims:
                 break
 
-        policy_val_inp = torch.cat([embedding, history])
+        policy_val_inp = torch.cat([embedding, history], dim=1)
         combine = self.policy_net(policy_val_inp)
         value = self.value_head(policy_val_inp)
         value = value.squeeze()
         
         policy = F.softmax(combine, dim=1)
-
-        assert policy[0].sum() == 0
 
         #so what do we want to do....
         #we can try some type of GAN type thing, or we can do alpha zero
