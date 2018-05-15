@@ -27,6 +27,8 @@ while True:
     new_memories = mctsnet.self_play(root_state)
     memories.extend(new_memories)
 
+    utils.save_memories(memories)
+
     trainer.fastai_train(mctsnet.new, memories)
 
     mctsnet.tournament(root_state, config.NUM_SIMS, config.NUM_TOURNAMENT_EPISODES)

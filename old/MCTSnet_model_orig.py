@@ -12,9 +12,8 @@ class MCTSnet(nn.Module):
         self.max_sims = max_sims
 
         self.emb_net = WideResNet(num_groups=2, N=2, k=4, in_channels=3)
-        # self.exploitation_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128)
-        # self.exploration_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128)
-        self.simulation_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128*2)
+        self.exploitation_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128)
+        self.exploration_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128)
         self.value_head = nn.Sequential(*[
             WideResNet(num_groups=1, N=1, k=2, num_classes=value_bottleneck, in_channels=128),
             nn.Linear(value_bottleneck, 1),
@@ -35,9 +34,8 @@ class MCTSnet(nn.Module):
 
         self.nets = [
             self.emb_net,
-            # self.exploitation_net,
-            # self.exploration_net,
-            self.simulation_net,
+            self.exploitation_net,
+            self.exploration_net,
             self.value_head,
             self.continue_head,
             self.forget_net,
@@ -68,29 +66,23 @@ class MCTSnet(nn.Module):
             noise = (torch.rand_like(history)-.5)*2
             if self.has_cuda:
                 noise = noise.cuda()
-            sim_inp = torch.cat([history, noise])
-            simulation = F.tanh(self.simulation_net(sim_inp))
-            # simulation = F.tanh(self.exploitation_net(history) + self.exploration_net(noise) + \
-            #     self.exploration_net(history))
+            simulation = F.tanh(self.exploitation_net(history) + self.exploration_net(noise) + \
+                self.exploration_net(history))
 
             chance = self.continue_head(simulation).squeeze()
             cont = np.random.choice(2, p=[1-chance.item(), chance.item()])
-            forget_inp = torch.cat([simulation, history])
-            forget = F.sigmoid(self.forget_net(forget_inp) + self.forget_bias)
+            forget = F.sigmoid(self.forget_net(simulation) + self.forget_net(history) + self.forget_bias)
             update = chance*simulation + (1 - chance)*embedding
             history = history*forget + (1-forget)*update
             i += 1
             if i > self.max_sims:
                 break
 
-        policy_val_inp = torch.cat([embedding, history])
-        combine = self.policy_net(policy_val_inp)
-        value = self.value_head(policy_val_inp)
+        combine = self.policy_net(embedding) + self.policy_net(history)
+        value = (self.value_head(embedding) + self.value_head(history))/2
         value = value.squeeze()
         
         policy = F.softmax(combine, dim=1)
-
-        assert policy[0].sum() == 0
 
         #so what do we want to do....
         #we can try some type of GAN type thing, or we can do alpha zero

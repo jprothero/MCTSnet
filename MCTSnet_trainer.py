@@ -49,6 +49,7 @@ class Trainer:
 
         value_loss = F.mse_loss(values, results)
         policy_loss = -search_probas.unsqueeze(0) @ torch.log(policies.unsqueeze(-1))
+        policy_loss /= len(minibatch)
 
         total_loss = value_loss + policy_loss
 
