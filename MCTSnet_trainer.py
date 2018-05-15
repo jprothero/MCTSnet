@@ -77,7 +77,7 @@ class Trainer:
         learner.model.real_forward = learner.model.forward
 
         learner.model.forward = lambda x: x
-        learner.fit(5e-3, epochs, wds=1e-7) #was 7e-2
+        learner.fit(7e-2, epochs, wds=1e-7) #was 7e-2
 
         learner.model.forward = learner.model.real_forward
 
