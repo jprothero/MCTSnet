@@ -19,17 +19,17 @@ def save_model(model):
     torch.save(model, "checkpoints/models/MCTSnet.t7")
     print('New best model saved')
 
-def load_model(cuda=torch.cuda.is_available()):
+def load_model():
     try:
         model = torch.load('checkpoints/models/MCTSnet.t7')
         print('Loaded best model')
         return model
     except Exception as e:
         print(e)
-        model = MCTSnet(config.R, config.C)
+        model = MCTSnet()
         print('Initializing new weights')
 
-    if cuda:
+    if config.CUDA:
         model = model.cuda()
 
     return model

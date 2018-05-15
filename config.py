@@ -1,3 +1,5 @@
+import torch
+
 OPTIM = "SGD"
 MOMENTUM = .9
 
@@ -36,3 +38,5 @@ STATE_SHAPE = (CH, R, C)
 NUM_CHOICES = STATE_SHAPE[1] * STATE_SHAPE[2]
 
 BATCHED_SHAPE = (BATCH_SIZE, STATE_SHAPE[0]+1, STATE_SHAPE[1], STATE_SHAPE[2])
+
+CUDA=torch.cuda.is_available()

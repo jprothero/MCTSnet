@@ -8,10 +8,11 @@ import model_config
 import config
 
 class MCTSnet(nn.Module):
-    def __init__(self, R, C, value_bottleneck=2, policy_bottleneck=2, max_sims=3, cuda=torch.cuda.is_available()):
+    def __init__(self):
         super(MCTSnet, self).__init__()
-        self.has_cuda = cuda
-        self.max_sims = max_sims
+        self.has_cuda = config.CUDA
+        
+        self.max_sims = model_config.MAX_SIMS
         ng = model_config.NUM_GROUPS
         k = model_config.MULTIPLIER
         n = model_config.NUM_LAYERS
@@ -27,21 +28,23 @@ class MCTSnet(nn.Module):
         # self.exploration_net = WideResNet(num_groups=2, N=2, k=4, in_channels=128)
         self.simulation_net = WideResNet(num_groups=ng, N=n, k=k, in_channels=self.num_channels*2)
         self.value_head = nn.Sequential(*[
-            WideResNet(num_groups=small_ng, N=small_n, k=small_k, num_classes=value_bottleneck, in_channels=self.num_channels*2),
-            nn.Linear(value_bottleneck, 1),
+            WideResNet(num_groups=small_ng, N=small_n, k=small_k, num_classes=model_config.VALUE_BOTTLENECK, 
+                in_channels=self.num_channels*2),
+            nn.Linear(model_config.VALUE_BOTTLENECK, 1),
             nn.Tanh()
         ])
 
         self.continue_head = nn.Sequential(*[
-            WideResNet(num_groups=ng, N=n, k=k, num_classes=value_bottleneck, in_channels=self.num_channels),
-            nn.Linear(value_bottleneck, 1),
+            WideResNet(num_groups=small_ng, N=small_n, k=small_k, num_classes=model_config.CONTINUE_BOTTLENECK, in_channels=self.num_channels),
+            nn.Linear(model_config.CONTINUE_BOTTLENECK, 1),
             nn.Sigmoid()
         ])
 
         self.forget_net = WideResNet(num_groups=ng, N=n, k=k, in_channels=self.num_channels*2)
         self.policy_net = nn.Sequential(*[
-            WideResNet(num_groups=small_ng, N=small_n, k=small_k, num_classes=policy_bottleneck, in_channels=self.num_channels*2)
-            , nn.Linear(policy_bottleneck, R*C)
+            WideResNet(num_groups=small_ng, N=small_n, k=small_k, num_classes=model_config.POLICY_BOTTLENECK, 
+                in_channels=self.num_channels*2)
+            , nn.Linear(model_config.POLICY_BOTTLENECK, config.R*config.C)
             ])
 
         self.nets = [
