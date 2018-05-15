@@ -73,6 +73,10 @@ class MCTSnet:
             , "best": 0
         }
 
+        if self.has_cuda:
+            self.best = self.best.cuda()
+            self.new = self.new.cuda()
+
         memories = []
         np.set_printoptions(precision=3)
         for _ in range(num_episodes):
