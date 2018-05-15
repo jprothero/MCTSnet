@@ -37,62 +37,82 @@ class MCTSnet:
         self.get_legal_actions = get_legal_actions
         self.transition_and_evaluate = transition_and_evaluate
 
-        self.new = model_utils.load_model()
-        self.best = model_utils.load_model()
+        self.new = model_utils.load_model(cuda=cuda)
+        self.best = model_utils.load_model(cuda=cuda)
         
         if self.has_cuda: 
             self.new = self.new.cuda()
             self.best = self.best.cuda()
 
-        self.az = AlphaZero()
-
-    def self_play(self, root_state, best_only=True, num_sims=3, num_episodes=20, deterministic=False):
+    def self_play(self, root_state, best_only=False, deterministic=False):
         self.best.eval()
         self.new.eval()
 
+        best_az = AlphaZero()
+        new_az = AlphaZero()
+
+        starting_player = 1
+
         if best_only:
             order = [self.best, self.best]
-            name_order = ["best", "new"]
+            name_order = ["best", "best"]
+            az_order = [best_az, new_az]
         else:
             if np.random.uniform() > .5:
                 order = [self.best, self.new]
                 name_order = ["best", "new"]
+                az_order = [best_az, new_az]
             else:
                 order = [self.new, self.best]
                 name_order = ["new", "best"]
-
-        az = self.az
-
-        game_over = False
-        curr_player = 1
-        state_np = np.array(root_state)
-        state = self.convert_to_torch(root_state).unsqueeze(0)
+                az_order = [new_az, best_az]
 
         scoreboard = {
             "new": 0
             , "best": 0
+            , "draws": 0
         }
-
-        if self.has_cuda:
-            self.best = self.best.cuda()
-            self.new = self.new.cuda()
 
         memories = []
         np.set_printoptions(precision=3)
-        for _ in range(num_episodes):
-            az.reset()
-            if deterministic:
-                az.T = 0
-            while not game_over:
-                curr_player += 1
-                curr_player = curr_player % 2
-                net = order[curr_player]
+        # sim_state_np[0] + sim_state_np[1] + np.reshape(policy, (6, 7)) #for debugging
+        for _ in tqdm(range(config.NUM_EPISODES)):
+            game_over = False
 
-                for _ in range(num_sims):
+            state_np = np.array(root_state)
+            state = self.convert_to_torch(root_state).unsqueeze(0)
+
+            best_az.reset()
+            new_az.reset()
+
+            if deterministic:
+                best_az.T = 0
+                new_az.T = 0
+
+            starting_player = (starting_player+1)%2
+            curr_player = starting_player
+            i = 0
+            while not game_over:
+                if i > 0: curr_player = (curr_player+1)%2
+
+                net = order[curr_player]
+                az = az_order[curr_player]
+                other_az = az_order[(curr_player+1)%2]
+                # if ((state_np[0] + state_np[1]) > 1).any():
+                
+
+                for _ in range(config.NUM_SIMS):
+                    #need to change result so that it is updated based on if the player that starting the sim (root state)
+                    #matchs
                     sim_state = state.clone() 
                     sim_state_np = np.array(state_np)
+                    # print(sim_state_np)
+                    # set_trace()
 
                     sim_state_np, result, sim_over = az.select(sim_state_np, self.transition_and_evaluate)
+
+                    if sim_over and sim_state_np[2][0][0] != starting_player and result != 0:
+                        result *= -1
 
                     sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
 
@@ -114,31 +134,51 @@ class MCTSnet:
 
                 action, search_probas = az.select_real()
 
+                if other_az.curr_node["children"] is not None:
+                    other_az.curr_node = other_az.curr_node["children"][action]
+                    other_az.curr_node["parent"] = None
+                else:
+                    other_az.reset()
+
                 memories.append({
-                    "state": state,
-                    "search_probas": search_probas,
+                    "state": state.clone(),
+                    "search_probas": torch.tensor(search_probas),
                     "curr_player": curr_player
                 })
 
+                # state_np1, result1, game_over1 = self.transition_and_evaluate(state_np, action)
+                # if result1 is not None:
+                #     set_trace()
+                # print(state_np[0])
+                # if curr_player == 0:
+                #     set_trace()
                 state_np, result, game_over = self.transition_and_evaluate(state_np, action)
+                assert ((state_np[0] + state_np[1]) < 2).all()
                 state = self.convert_to_torch(state_np)
-                # print(state_np)
-                # set_trace()
+                # print(name_order[curr_player], "Best Only: "+str(best_only))
 
-            if result == -1:
-                player = (curr_player + 1) % 2
+                i += 1
+
+                #cool visualization of the board, good for debugging
+                # print(state_np[0]+state_np[1])
+
+            # print("Result {}\nCurr Player: {}".format(result, curr_player))
+            # set_trace()
+
+            # set_trace()
+            if result != 0:
+                scoreboard[name_order[curr_player]] += 1
             else:
-                player = curr_player
-
-            scoreboard[name_order[player]] += 1
+                scoreboard["draws"] += 1                                
 
             for memory in memories:
-                if memory["curr_player"] != curr_player:
+                if memory["curr_player"] != curr_player and result != 0:
                     result *= -1
                 memory["result"] = result
 
         if not best_only:
-            print("Best Wins: {}, Challenger Wins: {}".format(scoreboard['best'], scoreboard['new']))
+            print("{} Wins: {}\n{} Wins: {}\n Draws: {}".format(name_order[0], scoreboard[name_order[0]],
+                name_order[1], scoreboard[name_order[1]], scoreboard["draws"]))
 
         return memories, scoreboard
 
@@ -163,8 +203,8 @@ class MCTSnet:
 
         return state
 
-    def tournament(self, root_state, num_sims, num_episodes):
-        _, scoreboard = self.self_play(root_state, best_only=False, num_sims=num_sims, num_episodes=num_episodes, deterministic=True)
+    def tournament(self, root_state):
+        _, scoreboard = self.self_play(root_state, best_only=False, deterministic=True)
 
         if scoreboard["new"] > scoreboard["best"]*config.SCORING_THRESHOLD:
             model_utils.save_model(self.new)

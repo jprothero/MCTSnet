@@ -31,8 +31,8 @@ class AlphaZero:
             choice_idx = self.curr_node["max_uct_idx"]
             self.curr_node = self.curr_node["children"][choice_idx]
             state, result, sim_over = transition_and_evaluate(state, choice_idx)
-            # print(state)
-            # set_trace()
+            assert ((state[0] + state[1]) < 2).all()
+
         return state, result, sim_over
 
     def select_real(self):

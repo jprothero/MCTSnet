@@ -31,7 +31,7 @@ while True:
 
     trainer.fastai_train(mctsnet.new, memories)
 
-    mctsnet.tournament(root_state, config.NUM_SIMS, config.NUM_TOURNAMENT_EPISODES)
+    mctsnet.tournament(root_state)
 
     iteration += 1
     print("Iteration Number "+str(iteration))
