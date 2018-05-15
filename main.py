@@ -24,14 +24,16 @@ memories = utils.load_memories()
 trainer = Trainer()
 
 while True:
+    if len(memories) < config.MIN_MEMORIES:
+        print("Have {} memories, need {}".format(len(memories), config.MIN_MEMORIES))
+    else:
+        trainer.fastai_train(mctsnet.new, memories)
+        mctsnet.tournament(root_state)
+
     new_memories, _ = mctsnet.self_play(root_state)
     memories.extend(new_memories)
 
     utils.save_memories(memories)
-
-    trainer.fastai_train(mctsnet.new, memories)
-
-    mctsnet.tournament(root_state)
 
     iteration += 1
     print("Iteration Number "+str(iteration))
