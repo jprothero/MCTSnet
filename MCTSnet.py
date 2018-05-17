@@ -39,12 +39,12 @@ class MCTSnet:
 
         self.new = model_utils.load_model(cuda=cuda)
         self.best = model_utils.load_model(cuda=cuda)
-        
-        if self.has_cuda: 
+
+        if self.has_cuda:
             self.new = self.new.cuda()
             self.best = self.best.cuda()
 
-    def self_play(self, root_state, best_only=True, 
+    def self_play(self, root_state, best_only=True,
         num_episodes=config.NUM_EPISODES, deterministic=False):
         self.best.eval()
         self.new.eval()
@@ -101,12 +101,12 @@ class MCTSnet:
                 az = az_order[curr_player]
                 other_az = az_order[(curr_player+1)%2]
                 # if ((state_np[0] + state_np[1]) > 1).any():
-                
+
 
                 for _ in range(config.NUM_SIMS):
                     #need to change result so that it is updated based on if the player that starting the sim (root state)
                     #matchs
-                    sim_state = state.clone() 
+                    sim_state = state.clone()
                     sim_state_np = np.array(state_np)
                     # print(sim_state_np)
                     # set_trace()
@@ -122,7 +122,7 @@ class MCTSnet:
                     policy = policy.squeeze().detach()
                     if self.has_cuda:
                         policy = policy.cpu()
-                    
+
                     policy = policy.numpy()
                     value = value.detach().squeeze().item()
 
@@ -171,7 +171,7 @@ class MCTSnet:
             if result != 0:
                 scoreboard[name_order[curr_player]] += 1
             else:
-                scoreboard["draws"] += 1                                
+                scoreboard["draws"] += 1
 
             for memory in episode_memories:
                 if memory["curr_player"] != curr_player and result != 0:
@@ -208,7 +208,7 @@ class MCTSnet:
         return state
 
     def tournament(self, root_state):
-        _, scoreboard = self.self_play(root_state, best_only=False, 
+        _, scoreboard = self.self_play(root_state, best_only=False,
             num_episodes=config.NUM_TOURNAMENT_EPISODES, deterministic=True)
 
         if scoreboard["new"] > scoreboard["best"]*config.SCORING_THRESHOLD:
@@ -216,3 +216,46 @@ class MCTSnet:
             self.best = model_utils.load_model()
         elif scoreboard["new"]*config.SCORING_THRESHOLD < scoreboard["best"]:
             self.new = model_utils.load_model()
+
+class MCTSnetPlayerMixIn:
+    def __init__(self,
+                 actions,
+                 get_legal_actions,
+                 transition_and_evaluate,
+                 cuda=torch.cuda.is_available(),
+                 best=False
+                 AI=None):
+        utils.create_folders()
+        self.has_cuda = cuda
+
+        self.actions = actions
+        self.get_legal_actions = get_legal_actions
+        self.transition_and_evaluate = transition_and_evaluate
+
+        self.best = model_utils.load_model(cuda=cuda)
+
+        if self.has_cuda:
+            self.best = self.best.cuda()
+
+    def correct_policy(self, policy, state):
+        # state = np.reshape(state, newshape=tuple(state.shape[1:]))
+        mask = np.zeros(shape=policy.shape)
+        legal_actions = self.get_legal_actions(state[:2])
+        mask[legal_actions] = 1
+        policy = policy * mask
+
+        pol_sum = np.sum(policy) * 1.0
+
+        if pol_sum != 0:
+            policy = policy / pol_sum
+
+        return policy
+
+    def convert_to_torch(self, state):
+        state = torch.tensor(state)
+        if self.has_cuda:
+            state = state.cuda()
+
+        return state
+
+    def PlayerMixin
