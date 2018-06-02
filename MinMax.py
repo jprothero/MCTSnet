@@ -8,8 +8,10 @@ import sys
 import numpy
 import unittest
 
-BOARD_SIZE_X = 7 # col
-BOARD_SIZE_Y = 6 # row
+from config import R, C
+
+BOARD_SIZE_X = C # col
+BOARD_SIZE_Y = R # row
 SEARCH_DEPTH = 4
 
 COMPUTER_PLAYER = 1 # minmax
