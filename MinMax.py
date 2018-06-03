@@ -29,7 +29,7 @@ def fullState_2_gameState(full_state, minmax_agent_idx: int):
     # assert legal game board state
     assert ((full_state[minmax_agent_idx]+full_state[other_agent_idx]) < 2.).all()
     gameState = full_state[minmax_agent_idx]*COMPUTER_PLAYER + full_state[other_agent_idx]*HUMAN_PLAYER
-    return gameState
+    return gameState.copy()
 
 def gameState_2_fullState(gameState, full_state, minmax_agent_idx: int):
     # assert right game board shape
@@ -39,7 +39,6 @@ def gameState_2_fullState(gameState, full_state, minmax_agent_idx: int):
     full_state[other_agent_idx] = np.where(gameState == HUMAN_PLAYER, gameState, 0)
     # assert legal game board state
     assert ((full_state[minmax_agent_idx]+full_state[other_agent_idx]) < 2.).all()
-    return
 
 #
 # Method that runs the minimax algorithm and returns

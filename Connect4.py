@@ -56,13 +56,10 @@ class Connect4:
 
         plane = full_state[orig_player]
 
-        if isinstance(action, int)
-            idx = action
-            i, j = np.unravel_index([idx], plane.shape)
-            i = i[0]
-            j = j[0]
-        else:
-            i, j = action
+        idx = action
+        i, j = np.unravel_index([idx], plane.shape)
+        i = i[0]
+        j = j[0]
 
         plane[i][j] = 1
 

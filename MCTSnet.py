@@ -21,7 +21,7 @@ import model_utils
 
 from AlphaZero import AlphaZero
 
-from MinMax import bestMove
+from MinMax import bestMove, fullState_2_gameState
 
 np.seterr(all="raise")
 
@@ -164,7 +164,7 @@ class MCTSnet:
                 i += 1
 
                 #cool visualization of the board, good for debugging
-                # print(state_np[0]+state_np[1])
+                #print(state_np[0]+state_np[1]*-1)
 
             # print("Result {}\nCurr Player: {}".format(result, curr_player))
             # set_trace()
@@ -272,8 +272,7 @@ class MCTSnet:
                         #need to change result so that it is updated based on if the player that starting the sim (root state)
                         #matchs
                         sim_state = state.clone()
-                        sim_state_np = np.array(state_np)
-                        # print(sim_state_np)
+                        sim_state_np = state_np.copy()
                         # set_trace()
 
                         sim_state_np, result, sim_over = az.select(sim_state_np, self.transition_and_evaluate)
@@ -309,15 +308,23 @@ class MCTSnet:
 
                 else: # case Minmax agent to play
                     gameState = fullState_2_gameState(state_np, minmax_player)
-                    # bestMove return the column to set a 'stone'
-                    column = bestMove(gameState, player=1, opponet=-1)
+                    # bestMove return the column to drop a 'stone'
+                    gameState_c = gameState.copy()
+                    column = bestMove(gameState_c, player=1, opponent=-1)
                     height = np.count_nonzero(gameState[:, column])
-                    action = (height, column)
+                    # action is a index of an spot on the gameboard
+                    action = ((config.R-1)-height)*config.C + column
+
+                    if best_az.curr_node["children"] is not None:
+                        best_az.curr_node = best_az.curr_node["children"][action]
+                        best_az.curr_node["parent"] = None
+                    else:
+                        best_az.reset()
 
                 # state_np1, result1, game_over1 = self.transition_and_evaluate(state_np, action)
                 # if result1 is not None:
                 #     set_trace()
-                # print(state_np[0])
+                # print(state_np[0])self_play
                 # if curr_player == 0:
                 #     set_trace()
                 state_np, result, game_over = self.transition_and_evaluate(state_np, action)
@@ -328,7 +335,7 @@ class MCTSnet:
                 i += 1
 
                 #cool visualization of the board, good for debugging
-                # print(state_np[0]+state_np[1])
+                #print(state_np[0]+state_np[1]*-1)
 
             # print("Result {}\nCurr Player: {}".format(result, curr_player))
             # set_trace()
