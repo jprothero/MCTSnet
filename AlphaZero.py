@@ -100,7 +100,7 @@ class AlphaZero:
                     self.curr_node["max_uct"] = child["UCT"]
                     self.curr_node["max_uct_idx"] = i
 
-    def norm_val(val): return (val+1)/2
+    def norm_val(self, val): return (val+1)/2
 
     def backup(self, backup_net):
         while self.curr_node["parent"] is not None:
