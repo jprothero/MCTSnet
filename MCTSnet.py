@@ -25,6 +25,14 @@ from MinMax import bestMove, fullState_2_gameState
 
 np.seterr(all="raise")
 
+def to_eval(nets):
+    for _, net in nets.items():
+        net.eval()
+
+def to_train(nets):
+    for _, net in nets.items():
+        net.train()
+
 class MCTSnet:
     def __init__(self,
                  actions,
@@ -52,12 +60,12 @@ class MCTSnet:
 
     def self_play(self, root_state, best_only=True,
         num_episodes=config.NUM_EPISODES, deterministic=False):
-        self.best.eval()
-        
+        to_eval(self.best)
+
         if deterministic:
-            self.new.eval()
+            to_eval(self.new)
         else:
-            self.new.train()
+            to_train(self.new)
 
         best_az = AlphaZero()
         new_az = AlphaZero()
