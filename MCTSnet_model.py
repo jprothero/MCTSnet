@@ -24,7 +24,7 @@ class MCTSnet(nn.Module):
 
         self.embed = WideResNet(num_groups=ng, N=n, k=k, in_channels=config.CH)
 
-        self.think = WideResNet(num_groups=ng, N=n, k=k, in_channels=self.num_channels)
+        self.update = WideResNet(num_groups=ng, N=n, k=k, in_channels=self.num_channels)
 
         self.think = WideResNet(num_groups=ng, N=n, k=k, in_channels=self.num_channels)
 
