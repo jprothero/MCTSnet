@@ -45,13 +45,19 @@ class MCTSnet:
         self.optim = model_utils.setup_optim(self.new)
 
         if self.has_cuda:
-            self.new = self.new.cuda()
-            self.best = self.best.cuda()
+            for (_, new_net), (_, best_net) in \
+                zip(self.new.items(), self.best.items()):
+                new_net = new_net.cuda()
+                best_net = best_net.cuda()
 
     def self_play(self, root_state, best_only=True,
         num_episodes=config.NUM_EPISODES, deterministic=False):
         self.best.eval()
-        self.new.eval()
+        
+        if deterministic:
+            self.new.eval()
+        else:
+            self.new.train()
 
         best_az = AlphaZero()
         new_az = AlphaZero()
@@ -194,14 +200,15 @@ class MCTSnet:
             # set_trace()
 
             # set_trace()
-            policy_loss /= move_count
-            value_loss = F.mse_loss(orig_value, result)
+            if not deterministic:
+                policy_loss /= move_count
+                value_loss = F.mse_loss(orig_value, result)
 
-            total_loss = value_loss + policy_loss
-            
-            self.optim.zero_grad()
-            total_loss.backward()
-            self.optim.step()
+                total_loss = value_loss + policy_loss
+                
+                self.optim.zero_grad()
+                total_loss.backward()
+                self.optim.step()
 
             if result != 0:
                 scoreboard[name_order[curr_player]] += 1

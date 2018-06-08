@@ -13,10 +13,10 @@ def setup_optim(nets):
     for _, net in nets.items():
         params += list(net.parameters())
 
-
-    model_opt = optim.SGD(params,
+    model_opt = optim.Adam(params,
         lr=config.LR,
-        momentum=config.MOMENTUM)
+        weight_decay=1e-6,
+        amsgrad=True)
 
     return model_opt
 
