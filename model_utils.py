@@ -54,9 +54,9 @@ def load_model(cuda=torch.cuda.is_available()):
         print('Loaded best model')
         return model
     except:
-        nets["emb"] = torch.load('checkpoints/models/emb_net.t7')
-        nets["policy"] = torch.load('checkpoints/models/policy_net.t7')
-        nets["backup"] = torch.load('checkpoints/models/backup_net.t7')
+        nets["emb"] = EmbNet()
+        nets["policy"] = PolicyNet())
+        nets["backup"] = BackupNet()
 
         print('Initializing new weights')
 
