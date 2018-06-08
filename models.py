@@ -31,7 +31,7 @@ class PolicyNet(nn.Module):
 
         self.policy_net = nn.Sequential(*[
             WideResNet(num_groups=ng, N=n, k=k, num_classes=policy_bottleneck,
-             in_channels=self.num_channels),
+             in_channels=num_channels),
             nn.Linear(policy_bottleneck, R*C)
         ])
 
@@ -68,7 +68,7 @@ class ValueHead(nn.Module):
 
         self.value_head = nn.Sequential(*[
             WideResNet(num_groups=ng, N=n, k=k, num_classes=value_bottleneck,
-             in_channels=self.num_channels),
+             in_channels=num_channels),
             nn.Linear(value_bottleneck, 1),
             nn.Tanh()
         ])
