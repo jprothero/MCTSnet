@@ -71,11 +71,14 @@ class MCTSnet(nn.Module):
         num_sims = 0
         while True:
             new_embedding = self.think(embedding)
-            embedding = self.update(embedding) + self.update(new_embedding)
-            cont = self.continue_head(embedding)
+            mixer = nn.Sigmoid(self.update(embedding) + \
+                 self.update(new_embedding))
+
+            embedding = embedding*mixer + new_embedding*(1-mixer)
+            
             num_sims += 1
             
-            if cont.sum() < embedding.shape[1]*.1 or num_sims >= max_sims:
+            if mixer.sum() > embedding.shape[1]*.8 or num_sims >= max_sims:
                 break
 
         value = self.value_head(embedding)
