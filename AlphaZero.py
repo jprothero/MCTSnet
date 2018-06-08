@@ -74,7 +74,7 @@ class AlphaZero:
                 "N": 0,
                 "W": 0,
                 "Q": 0,
-                "val": value
+                "val": value,
                 "U": p,
                 "P": p,
                 "d": self.curr_node["d"]+1,
