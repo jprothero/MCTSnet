@@ -18,7 +18,8 @@ class AlphaZero:
             "parent": None,
             "N": 0,
             "d": 0,
-            "emb": None
+            "emb": None,
+            "val": 0
         }
 
         self.turn = 1
