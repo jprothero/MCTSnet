@@ -58,7 +58,7 @@ class BackupNet(nn.Module):
 
 class ValueHead(nn.Module):
     def __init__(self, value_bottleneck=2):
-        super(ValueHead, self).__init__)
+        super(ValueHead, self).__init__()
 
         ng = model_config.NUM_GROUPS
         k = model_config.MULTIPLIER
