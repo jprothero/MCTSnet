@@ -26,6 +26,8 @@ class MCTSnet(nn.Module):
 
         self.think = WideResNet(num_groups=ng, N=n, k=k, in_channels=self.num_channels)
 
+        self.think = WideResNet(num_groups=ng, N=n, k=k, in_channels=self.num_channels)
+
         self.value_head = nn.Sequential(*[
             WideResNet(num_groups=small_ng, N=small_n, k=small_k, num_classes=value_bottleneck, in_channels=self.num_channels),
             nn.Linear(value_bottleneck, 1),
