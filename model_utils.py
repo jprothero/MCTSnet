@@ -6,7 +6,7 @@ import torch.optim as optim
 import config
 import numpy as np
 from IPython.core.debugger import set_trace
-from models import EmbNet, PolicyNet, BackupNet, ReadoutNet
+from models import EmbNet, PolicyNet, BackupNet
 
 def setup_optim(nets):
     params = []
