@@ -71,7 +71,7 @@ class MCTSnet(nn.Module):
         num_sims = 0
         while True:
             new_embedding = self.think(embedding)
-            mixer = nn.Sigmoid(self.update(embedding) + \
+            mixer = F.sigmoid(self.update(embedding) + \
                  self.update(new_embedding))
 
             embedding = embedding*mixer + new_embedding*(1-mixer)
