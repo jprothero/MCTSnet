@@ -55,7 +55,7 @@ def load_model(cuda=torch.cuda.is_available()):
         return model
     except:
         nets["emb"] = EmbNet()
-        nets["policy"] = PolicyNet())
+        nets["policy"] = PolicyNet()
         nets["backup"] = BackupNet()
 
         print('Initializing new weights')
