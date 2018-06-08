@@ -1,5 +1,6 @@
 import numpy as np
 from ipdb import set_trace
+import torch
 np.set_printoptions(precision=3)
 
 class AlphaZero:
