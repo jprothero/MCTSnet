@@ -100,10 +100,10 @@ class MCTSnet:
                 if i > 0: curr_player = (curr_player+1)%2
 
                 net = order[curr_player]
+
                 az = az_order[curr_player]
                 other_az = az_order[(curr_player+1)%2]
                 # if ((state_np[0] + state_np[1]) > 1).any():
-
 
                 for _ in range(config.NUM_SIMS):
                     #need to change result so that it is updated based on if the player that starting the sim (root state)
@@ -113,14 +113,16 @@ class MCTSnet:
                     # print(sim_state_np)
                     # set_trace()
 
-                    sim_state_np, result, sim_over = az.select(sim_state_np, self.transition_and_evaluate)
+                    sim_state_np, result, sim_over = \
+                        az.select(sim_state_np, self.transition_and_evaluate)
 
                     if sim_over and sim_state_np[2][0][0] != starting_player and result != 0:
                         result *= -1
 
                     sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
+                    emb = net["emb"](sim_state).detach()
 
-                    policy, value = net(sim_state)
+                    policy, value = net["policy"](emb)
                     policy = policy.squeeze().detach()
                     if self.has_cuda:
                         policy = policy.cpu()
@@ -132,9 +134,11 @@ class MCTSnet:
                         value = result
 
                     if not sim_over:
-                        az.expand(policy, sim_state_np, self.correct_policy)
-
-                    az.backup(value)
+                        az.expand(policy, value, sim_state_np, self.correct_policy, emb)
+                    else:
+                        az.curr_node = az.curr_node["parent"]
+                        
+                    az.backup(net["emb"])
 
                 action, search_probas = az.select_real()
 

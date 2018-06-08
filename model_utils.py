@@ -7,28 +7,62 @@ import config
 import numpy as np
 from IPython.core.debugger import set_trace
 from MCTSnet_model import MCTSnet
+from models import EmbNet, PolicyNet, BackupNet, ReadoutNet
 
-def setup_optim(model):
-    model_opt = optim.SGD(model.parameters(),
+def setup_optim(nets):
+    params = []
+    for _, net in nets.items():
+        params += list(net.parameters())
+
+
+    model_opt = optim.SGD(params,
         lr=config.LR,
         momentum=config.MOMENTUM)
 
     return model_opt
 
-def save_model(model):
-    torch.save(model, "checkpoints/models/MCTSnet.t7")
+# def save_model(model):
+#     torch.save(model, "checkpoints/models/MCTSnet.t7")
+#     print('New best model saved')
+
+# def load_model(cuda=torch.cuda.is_available()):
+#     try:
+#         model = torch.load('checkpoints/models/MCTSnet.t7')
+#         print('Loaded best model')
+#         return model
+#     except:
+#         model = MCTSnet(config.R, config.C)
+#         print('Initializing new weights')
+
+#     if cuda:
+#         model = model.cuda()
+
+#     return model
+
+def save_model(nets):
+    for name, net in nets.items():
+        torch.save(net, "checkpoints/models/{}_net.t7".format(name))
+
     print('New best model saved')
 
 def load_model(cuda=torch.cuda.is_available()):
+    nets = dict()
     try:
-        model = torch.load('checkpoints/models/MCTSnet.t7')
+        nets["emb"] = torch.load('checkpoints/models/emb_net.t7')
+        nets["policy"] = torch.load('checkpoints/models/policy_net.t7')
+        nets["backup"] = torch.load('checkpoints/models/backup_net.t7')
+
         print('Loaded best model')
         return model
     except:
-        model = MCTSnet(config.R, config.C)
+        nets["emb"] = torch.load('checkpoints/models/emb_net.t7')
+        nets["policy"] = torch.load('checkpoints/models/policy_net.t7')
+        nets["backup"] = torch.load('checkpoints/models/backup_net.t7')
+
         print('Initializing new weights')
 
     if cuda:
-        model = model.cuda()
+        for _, net in nets.items():
+            net = net.cuda()
 
-    return model
+    return nets

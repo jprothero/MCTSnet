@@ -16,7 +16,8 @@ class AlphaZero:
             "children": None,
             "parent": None,
             "N": 0,
-            "d": 0
+            "d": 0,
+            "emb": None
         }
 
         self.turn = 1
@@ -60,7 +61,7 @@ class AlphaZero:
 
         return idx, visits
 
-    def expand(self, policy, sim_state_np, correct_policy):
+    def expand(self, policy, value, sim_state_np, correct_policy, embedding):
         self.curr_node["children"] = []
 
         if self.curr_node["parent"] is None:
@@ -73,11 +74,13 @@ class AlphaZero:
                 "N": 0,
                 "W": 0,
                 "Q": 0,
+                "val": value
                 "U": p,
                 "P": p,
                 "d": self.curr_node["d"]+1,
                 "children": None,
-                "parent": self.curr_node
+                "parent": self.curr_node,
+                "emb": embedding
             }
 
             self.curr_node["children"].extend([child])
@@ -96,21 +99,26 @@ class AlphaZero:
                     self.curr_node["max_uct"] = child["UCT"]
                     self.curr_node["max_uct_idx"] = i
 
-    def backup(self, value):
-        value += 1
-        value /= 2
+    def norm_val(val): return (val+1)/2
+
+    def backup(self, backup_net):
 
         while self.curr_node["parent"] is not None:
-            self.update_node(value)
+            backup_in = torch.cat([curr["emb"], 
+                parent["emb"], norm_val(curr["val"]), norm_val(parent["val"])])
 
-            self.update_uct()
+            parent["emb"] = backup_net(backup_in)
+
+            # self.update_node(value)
+
+            # self.update_uct()
 
             self.curr_node = self.curr_node["parent"]
 
         #update root visits
-        self.curr_node["N"] += 1
+        # self.curr_node["N"] += 1
 
-        self.update_uct()
+        # self.update_uct()
 
     def update_node(self, value):
         self.curr_node["N"] += 1
