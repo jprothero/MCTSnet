@@ -109,16 +109,16 @@ class AlphaZero:
 
             parent["emb"] = backup_net(backup_in)
 
-            # self.update_node(value)
+            self.update_node(value)
 
-            # self.update_uct()
+            self.update_uct()
 
             self.curr_node = self.curr_node["parent"]
 
         #update root visits
-        # self.curr_node["N"] += 1
+        self.curr_node["N"] += 1
 
-        # self.update_uct()
+        self.update_uct()
 
     def update_node(self, value):
         self.curr_node["N"] += 1
