@@ -42,6 +42,8 @@ class MCTSnet:
         self.new = model_utils.load_model(cuda=cuda)
         self.best = model_utils.load_model(cuda=cuda)
 
+        self.optim = model_utils.setup_optim(self.new)
+
         if self.has_cuda:
             self.new = self.new.cuda()
             self.best = self.best.cuda()
@@ -96,8 +98,13 @@ class MCTSnet:
             curr_player = starting_player
             i = 0
             episode_memories = []
+            move_count = 0
             while not game_over:
+                move_count += 1
                 if i > 0: curr_player = (curr_player+1)%2
+
+                result_sum = 0
+                result_count = 0
 
                 net = order[curr_player]
 
@@ -105,7 +112,7 @@ class MCTSnet:
                 other_az = az_order[(curr_player+1)%2]
                 # if ((state_np[0] + state_np[1]) > 1).any():
 
-                for _ in range(config.NUM_SIMS):
+                for i in range(config.NUM_SIMS):
                     #need to change result so that it is updated based on if the player that starting the sim (root state)
                     #matchs
                     sim_state = state.clone()
@@ -119,16 +126,24 @@ class MCTSnet:
                     if sim_over and sim_state_np[2][0][0] != starting_player and result != 0:
                         result *= -1
 
+                    if result != 0:
+                        result_sum += result
+                        result_count += 1
+
                     sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
-                    emb = net["emb"](sim_state).detach()
+                    emb = net["emb"](sim_state)
 
                     policy, value = net["policy"](emb)
+                    if i == 0:
+                        orig_policy = policy
+                        orig_val = value
+
                     policy = policy.squeeze().detach()
                     if self.has_cuda:
                         policy = policy.cpu()
 
                     policy = policy.numpy()
-                    value = value.detach().squeeze().item()
+                    value = value.squeeze().item()
 
                     if result is not None:
                         value = result
@@ -140,7 +155,12 @@ class MCTSnet:
                         
                     az.backup(net["emb"])
 
+                emb = az.curr_node["emb"]
                 action, search_probas = az.select_real()
+
+                result_sum /= result_count
+
+                policy_loss += -search_probas.unsqueeze(0) @ torch.log(orig_policy.unsqueeze(-1))
 
                 if other_az.curr_node["children"] is not None:
                     other_az.curr_node = other_az.curr_node["children"][action]
@@ -174,6 +194,15 @@ class MCTSnet:
             # set_trace()
 
             # set_trace()
+            policy_loss /= move_count
+            value_loss = F.mse_loss(orig_value, result)
+
+            total_loss = value_loss + policy_loss
+            
+            self.optim.zero_grad()
+            total_loss.backward()
+            self.optim.step()
+
             if result != 0:
                 scoreboard[name_order[curr_player]] += 1
             else:
