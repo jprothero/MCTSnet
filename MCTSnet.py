@@ -112,13 +112,12 @@ class MCTSnet:
             curr_player = starting_player
             i = 0
             episode_memories = []
+            values = []
             move_count = 0
+            policy_loss = 0 
             while not game_over:
                 move_count += 1
                 if i > 0: curr_player = (curr_player+1)%2
-
-                result_sum = 0
-                result_count = 0
 
                 net = order[curr_player]
 
@@ -140,17 +139,13 @@ class MCTSnet:
                     if sim_over and sim_state_np[2][0][0] != starting_player and result != 0:
                         result *= -1
 
-                    if result != 0:
-                        result_sum += result
-                        result_count += 1
-
                     sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
                     emb = net["emb"](sim_state)
 
                     policy, value = net["policy"](emb)
                     if i == 0:
                         orig_policy = policy
-                        orig_val = value
+                        orig_value = value
 
                     policy = policy.squeeze().detach()
                     if self.has_cuda:
@@ -158,6 +153,10 @@ class MCTSnet:
 
                     policy = policy.numpy()
                     value = value.squeeze().item()
+                    values.append(value)
+
+                    #might want to detach
+                    # value = value.detach()
 
                     if result is not None:
                         value = result
@@ -171,8 +170,6 @@ class MCTSnet:
 
                 emb = az.curr_node["emb"]
                 action, search_probas = az.select_real()
-
-                result_sum /= result_count
 
                 policy_loss += -search_probas.unsqueeze(0) @ torch.log(orig_policy.unsqueeze(-1))
 
@@ -210,7 +207,9 @@ class MCTSnet:
             # set_trace()
             if not deterministic:
                 policy_loss /= move_count
-                value_loss = F.mse_loss(orig_value, result)
+                results = torch.cat([result for _ in range(len(values))])
+                values = torch.cat(values)
+                value_loss = F.mse_loss(values, results)
 
                 total_loss = value_loss + policy_loss
                 
