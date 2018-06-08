@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-import wrn
+from wrn import WideResNet
 import model_config
 import config
 
