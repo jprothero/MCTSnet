@@ -44,7 +44,7 @@ class MCTSnet(nn.Module):
             ])
 
         self.nets = [
-            self.emb_net,
+            self.embed,
             self.think,
             self.update,
             self.continue_head,
