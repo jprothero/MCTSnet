@@ -106,8 +106,8 @@ class AlphaZero:
         while self.curr_node["parent"] is not None:
             backup_in = torch.cat([self.curr_node["emb"], 
                 self.curr_node["parent"]["emb"], 
-                    norm_val(self.curr_node["val"]), 
-                    norm_val(self.curr_node["parent"]["val"])])
+                    self.norm_val(self.curr_node["val"]), 
+                    self.norm_val(self.curr_node["parent"]["val"])])
 
             parent["emb"] = backup_net(backup_in)
 
