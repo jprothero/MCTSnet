@@ -63,7 +63,8 @@ class MCTSnet(nn.Module):
                     nn.init.uniform_(params, 0.1)
 
     def forward(self, state, max_sims=5):
-        embedding = self.emb_net(state)
+
+        embedding = self.embed(state)
 
         num_sims = 0
         while True:
