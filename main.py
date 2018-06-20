@@ -29,7 +29,7 @@ memories = utils.load_memories()
 
 trainer = Trainer()
 
-funcs = {'self_play': mctsnet.self_play, 'play_minmax': mctsnet.play_minmax}
+funcs = {'self_play': mctsnet.make_memories, 'play_minmax': mctsnet.play_minmax}
 F = funcs[args.func]
 
 while True:

@@ -46,7 +46,184 @@ class MCTSnet:
             self.new = self.new.cuda()
             self.best = self.best.cuda()
 
-    def self_play(self, root_state, best_only=True,
+    def make_memories(self, root_state, best_only=True,
+        num_episodes=config.NUM_EPISODES, deterministic=False):
+        self.best.eval()
+        self.new.eval()
+
+        best_az = AlphaZero()
+        new_az = AlphaZero()
+
+        starting_player = 1
+
+        if best_only:
+            order = [self.best, self.best]
+            name_order = ["best", "best"]
+            az_order = [best_az, new_az]
+        else:
+            if np.random.uniform() > .5:
+                order = [self.best, self.new]
+                name_order = ["best", "new"]
+                az_order = [best_az, new_az]
+            else:
+                order = [self.new, self.best]
+                name_order = ["new", "best"]
+                az_order = [new_az, best_az]
+
+        scoreboard = {
+            "new": 0
+            , "best": 0
+            , "draws": 0
+        }
+
+        memories = []
+        np.set_printoptions(precision=3)
+        # sim_state_np[0] + sim_state_np[1] + np.reshape(policy, (6, 7)) #for debugging
+        for _ in tqdm(range(num_episodes)):
+            game_over = False
+
+            state_np = np.array(root_state)
+            state = self.convert_to_torch(root_state).unsqueeze(0)
+
+            best_az.reset()
+            new_az.reset()
+
+            if deterministic:
+                best_az.T = 0
+                new_az.T = 0
+
+            starting_player = (starting_player+1)%2
+            curr_player = starting_player
+
+            def play_until_over(sim_first):
+                i = 0
+                episode_memories = []
+                biggest_diff = None
+                key_state = None
+                last_value = None
+
+                while not game_over:
+                    if i > 0: curr_player = (curr_player+1)%2
+
+                    net = order[curr_player]
+                    az = az_order[curr_player]
+                    other_az = az_order[(curr_player+1)%2]
+
+                    if sim_first:
+                        for _ in range(config.NUM_SIMS):
+                            #need to change result so that it is updated based on if the player that starting the sim (root state)
+                            #matchs
+                            sim_state = state.clone()
+                            sim_state_np = np.array(state_np)
+                            # print(sim_state_np)
+                            # set_trace()
+
+                            sim_state_np, result, sim_over = az.select(sim_state_np, self.transition_and_evaluate)
+
+                            if sim_over and sim_state_np[2][0][0] != starting_player and result != 0:
+                                result *= -1
+
+                            sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
+
+                            policy, value = net(sim_state)
+                            policy = policy.squeeze().detach()
+                            if self.has_cuda:
+                                policy = policy.cpu()
+
+                            policy = policy.numpy()
+                            value = value.detach().squeeze().item()
+
+                            if result is not None:
+                                value = result
+
+                            if not sim_over:
+                                az.expand(policy, sim_state_np, self.correct_policy)
+
+                            az.backup(value)
+
+                        action, search_probas = az.select_real()
+
+                        if other_az.curr_node["children"] is not None:
+                            other_az.curr_node = other_az.curr_node["children"][action]
+                            other_az.curr_node["parent"] = None
+                        else:
+                            other_az.reset()
+                    else:
+                        policy, value = net(state)
+                        policy = policy.squeeze().detach()
+                        if self.has_cuda:
+                            policy = policy.cpu()
+                        policy = policy.numpy()
+                        policy = correct_policy(policy, state_np)
+
+                        action = np.random.choice(len(policy), p=policy)
+
+                        value = value.detach().squeeze().item() 
+
+                        diff = last_value - value
+                        if diff > biggest_diff:
+                            biggest_diff = diff
+                            key_state = state.clone()
+
+                        last_value = value
+
+                    state_np, result, game_over = self.transition_and_evaluate(state_np, action)
+                    # assert ((state_np[0] + state_np[1]) < 2).all()
+                    state = self.convert_to_torch(state_np).unsqueeze(0)
+                    # print(name_order[curr_player], "Best Only: "+str(best_only))
+
+                    i += 1
+
+                    episode_memories.append({
+                        "state": state.clone(),
+                        "curr_player": curr_player
+                    })
+
+                    if sim_first:
+                        episode_memories[-1].append(search_probas)
+                        sim_first = False
+
+            play_until_over()
+
+            if result != 0:
+                scoreboard[name_order[curr_player]] += 1
+            else:
+                scoreboard["draws"] += 1
+
+            for memory in episode_memories:
+                if memory["curr_player"] != curr_player: 
+                    result *= -1
+
+                memory["result"] = result
+
+            state = key_state
+
+            memories.extend(episode_memories)    
+
+            episode_memories = []        
+
+            play_until_over()
+
+            if result != 0:
+                scoreboard[name_order[curr_player]] += 1
+            else:
+                scoreboard["draws"] += 1
+
+            for memory in episode_memories:
+                if memory["curr_player"] != curr_player: 
+                    result *= -1
+
+                memory["result"] = result
+
+            memories.extend(episode_memories)    
+
+        if not best_only:
+            print("{} Wins: {}\n{} Wins: {}\n Draws: {}".format(name_order[0], scoreboard[name_order[0]],
+                name_order[1], scoreboard[name_order[1]], scoreboard["draws"]))
+
+        return memories, scoreboard
+
+     def self_play(self, root_state, best_only=True,
         num_episodes=config.NUM_EPISODES, deterministic=False):
         self.best.eval()
         self.new.eval()
