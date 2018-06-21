@@ -26,8 +26,6 @@ mctsnet = MCTSnet(actions=actions, get_legal_actions=get_legal_actions,
     transition_and_evaluate=transition_and_evaluate)
 
 # memories = utils.load_memories()
-memories = []
-value_memories = []
 
 trainer = Trainer()
 
@@ -35,6 +33,9 @@ funcs = {'self_play': mctsnet.make_memories, 'play_minmax': mctsnet.play_minmax}
 F = funcs[args.func]
 
 while True:
+    memories = []
+    value_memories = []
+
     new_memories, new_value_memories = F(root_state)
     memories.extend(new_memories)
     value_memories.extend(new_value_memories)
