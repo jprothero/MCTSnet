@@ -49,8 +49,8 @@ class Trainer:
         results = torch.tensor(results).float().unsqueeze(-1)
         search_probas = torch.cat(search_probas)
 
-        value_states = torch.cat(states, dim=0)
-        value_results = torch.tensor(results).float().unsqueeze(-1)
+        value_states = torch.cat(value_states, dim=0)
+        value_results = torch.tensor(value_results).float().unsqueeze(-1)
 
         if self.has_cuda:
             states = states.cuda()
