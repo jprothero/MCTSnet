@@ -59,7 +59,7 @@ class Trainer:
             net = net.cuda()
 
             value_states = value_states.cuda()
-            value_result = value_results.cuda()
+            value_results = value_results.cuda()
 
         logits, values = net(states)
         policies = F.log_softmax(logits, dim=1)
