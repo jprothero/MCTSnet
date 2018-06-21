@@ -23,6 +23,8 @@ from AlphaZero import AlphaZero
 
 from MinMax import bestMove, fullState_2_gameState
 
+import torch.nn.functional as F
+
 np.seterr(all="raise")
 
 class MCTSnet:
@@ -30,7 +32,7 @@ class MCTSnet:
                  actions,
                  get_legal_actions,
                  transition_and_evaluate,
-                 cuda=torch.cuda.is_available(),
+                 cuda=config.CUDA,
                  best=False):
         utils.create_folders()
         self.has_cuda = cuda
@@ -120,7 +122,8 @@ class MCTSnet:
 
                     sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
 
-                    policy, value = net(sim_state)
+                    logits, value = net(sim_state)
+                    policy = F.softmax(logits, dim=1)
                     policy = policy.squeeze().detach()
                     if self.has_cuda:
                         policy = policy.cpu()
@@ -282,7 +285,8 @@ class MCTSnet:
 
                         sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
 
-                        policy, value = net(sim_state)
+                        logits, value = net(sim_state)
+                        policy = F.softmax(logits, dim=1)
                         policy = policy.squeeze().detach()
                         if self.has_cuda:
                             policy = policy.cpu()

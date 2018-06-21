@@ -82,6 +82,6 @@ class MCTSnet(nn.Module):
                 break
 
         value = self.value_head(embedding)
-        policy = F.softmax(self.policy_head(embedding), dim=1)
+        logits = self.policy_head(embedding)
 
-        return policy, value
+        return logits, value

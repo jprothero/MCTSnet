@@ -47,7 +47,8 @@ class Trainer:
             search_probas = search_probas.cuda()
             net = net.cuda()
 
-        policies, values = net(states)
+        logits, values = net(states)
+        log_policies = F.log_softmax(logits, dim=1)
         policies = policies.view(-1)
 
         value_loss = F.mse_loss(values, results)
