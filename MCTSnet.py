@@ -171,7 +171,7 @@ class MCTSnet:
             memories.append(memory)
             value_memories_1.extend(value_memories_2)
 
-        return memories, value_memories
+        return memories, value_memories_1
 
     def self_play(self, root_state, best_only=True,
         num_episodes=config.NUM_EPISODES, deterministic=False):
