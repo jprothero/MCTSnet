@@ -25,7 +25,7 @@ from MinMax import bestMove, fullState_2_gameState
 
 import torch.nn.functional as F
 
-np.seterr(all="raise")
+# np.seterr(all="raise")
 
 class MCTSnet:
     def __init__(self,
