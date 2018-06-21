@@ -1,3 +1,7 @@
+import torch
+
+CUDA = False #torch.cuda.is_available()
+
 OPTIM = "SGD"
 MOMENTUM = .9
 
@@ -9,6 +13,8 @@ MIN_MEMORIES = BATCH_SIZE*3
 MAX_MEMORIES = 30000
 
 NUM_EPISODES=10
+
+NUM_MEMORIES=100
 
 SCORING_THRESHOLD = 1.39 #if wins by at least 2
 

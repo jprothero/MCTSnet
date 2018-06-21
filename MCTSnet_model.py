@@ -24,20 +24,10 @@ class MCTSnet(nn.Module):
 
         self.embed = WideResNet(num_groups=ng, N=n, k=k, in_channels=config.CH)
 
-        self.update = WideResNet(num_groups=ng, N=n, k=k, in_channels=self.num_channels)
-
-        self.think = WideResNet(num_groups=ng, N=n, k=k, in_channels=self.num_channels)
-
         self.value_head = nn.Sequential(*[
             WideResNet(num_groups=small_ng, N=small_n, k=small_k, num_classes=value_bottleneck, in_channels=self.num_channels),
             nn.Linear(value_bottleneck, 1),
             nn.Tanh()
-        ])
-
-        self.continue_head = nn.Sequential(*[
-            WideResNet(num_groups=ng, N=n, k=k, num_classes=value_bottleneck, in_channels=self.num_channels),
-            nn.Linear(continue_bottleneck, 1),
-            nn.Sigmoid()
         ])
 
         self.policy_head = nn.Sequential(*[
@@ -47,9 +37,6 @@ class MCTSnet(nn.Module):
 
         self.nets = [
             self.embed,
-            self.think,
-            self.update,
-            self.continue_head,
             self.policy_head,
             self.value_head,
         ]
@@ -64,24 +51,10 @@ class MCTSnet(nn.Module):
                 except:
                     nn.init.uniform_(params, 0.1)
 
-    def forward(self, state, max_sims=5):
-
+    def forward(self, state):
         embedding = self.embed(state)
 
-        num_sims = 0
-        while True:
-            new_embedding = self.think(embedding)
-            mixer = F.sigmoid(self.update(embedding) + \
-                 self.update(new_embedding))
-
-            embedding = embedding*mixer + new_embedding*(1-mixer)
-            
-            num_sims += 1
-            
-            if mixer.sum() > embedding.shape[1]*.8 or num_sims >= max_sims:
-                break
-
         value = self.value_head(embedding)
-        policy = F.softmax(self.policy_head(embedding), dim=1)
+        logits = self.policy_head(embedding)
 
-        return policy, value
+        return logits, value
