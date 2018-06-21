@@ -189,7 +189,7 @@ class MCTSnet:
         }
 
         memories = []
-        np.set_printoptiosns(precision=3)
+        np.set_printoptions(precision=3)
         # sim_state_np[0] + sim_state_np[1] + np.reshape(policy, (6, 7)) #for debugging
         for _ in tqdm(range(num_episodes)):
             game_over = False
