@@ -25,7 +25,9 @@ iteration = 0
 mctsnet = MCTSnet(actions=actions, get_legal_actions=get_legal_actions,
     transition_and_evaluate=transition_and_evaluate)
 
-memories = utils.load_memories()
+# memories = utils.load_memories()
+memories = []
+value_memories = []
 
 trainer = Trainer()
 
@@ -33,12 +35,14 @@ funcs = {'self_play': mctsnet.make_memories, 'play_minmax': mctsnet.play_minmax}
 F = funcs[args.func]
 
 while True:
-    new_memories = F(root_state)
+    new_memories, new_value_memories = F(root_state)
     memories.extend(new_memories)
+    value_memories.extend(new_value_memories)
 
-    utils.save_memories(memories)
+    # utils.save_memories(memories)
+    # utils.save_value_memories(value_memories)
 
-    trainer.fastai_train(mctsnet.new, memories)
+    trainer.fastai_train(mctsnet.new, memories, value_memories)
 
     mctsnet.tournament(root_state)
 

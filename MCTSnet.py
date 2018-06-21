@@ -67,6 +67,8 @@ class MCTSnet:
 
         i = 0
 
+        value_memories = []
+
         while not game_over:
             if i > 0: 
                 curr_player = (curr_player+1)%2
@@ -79,7 +81,7 @@ class MCTSnet:
 
                     sim_state_np, result, sim_over = az.select(sim_state_np, self.transition_and_evaluate)
 
-                    if sim_over and curr_player != starting_player:
+                    if sim_over and sim_state_np[2][0][0] != starting_player:
                         result *= -1
 
                     sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
@@ -129,34 +131,47 @@ class MCTSnet:
 
             if sims_for_first_move:
                 memory = {
-                "state": state.clone(),
-                "search_probas": torch.tensor(search_probas).float(), 
-                "curr_player": curr_player
+                    "state": state.clone(),
+                    "search_probas": torch.tensor(search_probas).float(), 
+                    "curr_player": curr_player
                 }
 
-            sims_for_first_move = False
+                sims_for_first_move = False
+            else:
+                value_memories.append({
+                    "state": state.clone(),
+                    "curr_player": curr_player
+                })
         
         if memory is not None:
             if memory["curr_player"] != curr_player: 
                 result *= -1
 
             memory["result"] = result
-        return memory, key_state
+
+        for v_mem in value_memories:
+            if memory["curr_player"] != curr_player: 
+                result *= -1
+
+            memory["result"] = result 
+
+        return memory, key_state, value_memories
 
     def make_memories(self, root_state, num_memories=config.NUM_MEMORIES):
         self.best.eval()
 
         memories = []
         for _ in tqdm(range(num_memories)):
-            _, key_state = self.play_until_over(root_state, sims_for_first_move=False)
+            _, key_state, value_memories_1 = self.play_until_over(root_state, sims_for_first_move=False)
 
             state = key_state.squeeze()
 
-            memory, key_state = self.play_until_over(state, sims_for_first_move=True)
+            memory, key_state, value_memories_2 = self.play_until_over(state, sims_for_first_move=True)
 
-            memories.append(memory)    
+            memories.append(memory)
+            value_memories_1.extend(value_memories_2)
 
-        return memories
+        return memories, value_memories
 
     def self_play(self, root_state, best_only=True,
         num_episodes=config.NUM_EPISODES, deterministic=False):

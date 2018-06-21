@@ -23,29 +23,43 @@ class Trainer:
     def train_wrapper(self, _, __):
         return self.train(self.net, self.memories)
 
-    def train(self, net, memories):
+    def train(self, net, memories, value_memories):
         net.forward = net.real_forward
         net.train()
         minibatch = sample(memories, min(config.BATCH_SIZE, len(memories)))
+        value_minibatch = sample(memories, min(config.BATCH_SIZE, len(value_memories)))
 
         states = []
         results = []
         search_probas = []
+
+        value_states = []
+        value_results = []
 
         for memory in minibatch:
             states.append(memory["state"])
             results.append(memory["result"])
             search_probas.append(memory["search_probas"])
 
+        for memory in value_minibatch:
+            value_states.append(memory["state"])
+            value_results.append(memory["result"])
+
         states = torch.cat(states, dim=0)
         results = torch.tensor(results).float().unsqueeze(-1)
         search_probas = torch.cat(search_probas)
+
+        value_states = torch.cat(states, dim=0)
+        value_results = torch.tensor(results).float().unsqueeze(-1)
 
         if self.has_cuda:
             states = states.cuda()
             results = results.cuda()
             search_probas = search_probas.cuda()
             net = net.cuda()
+
+            value_states = value_states.cuda()
+            value_result = value_results.cuda()
 
         logits, values = net(states)
         policies = F.log_softmax(logits, dim=1)
@@ -54,6 +68,9 @@ class Trainer:
         value_loss = F.mse_loss(values, results)
         policy_loss = -search_probas.unsqueeze(0) @ policies.unsqueeze(-1)
         policy_loss /= len(minibatch)
+
+        _, more_values = net(value_states)
+        value_loss += F.mse_loss(more_values, value_results)
 
         total_loss = value_loss + policy_loss
 
