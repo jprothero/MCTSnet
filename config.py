@@ -1,6 +1,6 @@
 import torch
 
-CUDA = False #torch.cuda.is_available()
+CUDA = torch.cuda.is_available()
 
 OPTIM = "SGD"
 MOMENTUM = .9

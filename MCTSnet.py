@@ -59,10 +59,19 @@ class MCTSnet:
         key_state = None
         last_value = None
 
+        starting_player = 1
+        curr_player = starting_player
+
         az = AlphaZero()
         net = self.best
 
+        i = 0
+
         while not game_over:
+            if i > 0: 
+                curr_player = (curr_player+1)%2
+            else:
+                i += 1
             if sims_for_first_move:
                 for _ in range(config.NUM_SIMS):
                     sim_state = state.clone()
@@ -70,7 +79,7 @@ class MCTSnet:
 
                     sim_state_np, result, sim_over = az.select(sim_state_np, self.transition_and_evaluate)
 
-                    if sim_over and sim_state_np[2][0][0] != starting_player:
+                    if sim_over and curr_player != starting_player:
                         result *= -1
 
                     sim_state = self.convert_to_torch(sim_state_np).unsqueeze(0)
@@ -119,9 +128,9 @@ class MCTSnet:
             state = self.convert_to_torch(state_np).unsqueeze(0)
 
             if sims_for_first_move:
-                {
+                memory = {
                 "state": state.clone(),
-                "search_probas": search_probas, 
+                "search_probas": torch.tensor(search_probas).float(), 
                 "curr_player": curr_player
                 }
 
@@ -132,7 +141,6 @@ class MCTSnet:
                 result *= -1
 
             memory["result"] = result
-
         return memory, key_state
 
     def make_memories(self, root_state, num_memories=config.NUM_MEMORIES):
@@ -142,11 +150,11 @@ class MCTSnet:
         for _ in tqdm(range(num_memories)):
             _, key_state = self.play_until_over(root_state, sims_for_first_move=False)
 
-            state = key_state
+            state = key_state.squeeze()
 
             memory, key_state = self.play_until_over(state, sims_for_first_move=True)
 
-            memories.extend(memory)    
+            memories.append(memory)    
 
         return memories
 

@@ -33,7 +33,7 @@ funcs = {'self_play': mctsnet.make_memories, 'play_minmax': mctsnet.play_minmax}
 F = funcs[args.func]
 
 while True:
-    new_memories, _ = F(root_state)
+    new_memories = F(root_state)
     memories.extend(new_memories)
 
     utils.save_memories(memories)
