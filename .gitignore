@@ -3,3 +3,5 @@ old/
 .vscode/
 .ipynb_checkpoints/
 *.ipynb
+checkpoints/
+data/
