@@ -78,8 +78,9 @@ class Trainer:
 
         return total_loss
 
-    def fastai_train(self, net, memories, num_cycles=10, epochs=1):
+    def fastai_train(self, net, memories, value_memories, num_cycles=10, epochs=1):
         self.memories = memories
+        self.value_memories = value_memories
         self.net = net
 
         if len(memories) < config.MIN_MEMORIES:
@@ -100,6 +101,7 @@ class Trainer:
         learner.model.forward = learner.model.real_forward
 
         del self.memories
+        del self.value_memories
         del self.net
         del net_wrapped.model.real_forward
         del net_wrapped
