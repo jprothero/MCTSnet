@@ -21,7 +21,7 @@ class Trainer:
         self.has_cuda = cuda
 
     def train_wrapper(self, _, __):
-        return self.train(self.net, self.memories)
+        return self.train(self.net, self.memories, self.value_memories)
 
     def train(self, net, memories, value_memories):
         net.forward = net.real_forward
