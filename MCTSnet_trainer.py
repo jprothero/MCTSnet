@@ -55,6 +55,7 @@ class Trainer:
         policy_loss = -search_probas.unsqueeze(0) @ policies.unsqueeze(-1)
         policy_loss /= len(minibatch)
 
+        more_value_loss = 0
         for _ in range(num_value_iters):
             value_states = []
             value_results = []
