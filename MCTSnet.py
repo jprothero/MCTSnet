@@ -150,10 +150,10 @@ class MCTSnet:
             memory["result"] = result
 
         for v_mem in value_memories:
-            if memory["curr_player"] != curr_player: 
+            if v_mem["curr_player"] != curr_player: 
                 result *= -1
 
-            memory["result"] = result 
+            v_mem["result"] = result 
 
         return memory, key_state, value_memories
 
