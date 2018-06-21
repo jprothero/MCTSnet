@@ -48,7 +48,7 @@ class Trainer:
             net = net.cuda()
 
         logits, values = net(states)
-        log_policies = F.log_softmax(logits, dim=1)
+        policies = F.log_softmax(logits, dim=1)
         policies = policies.view(-1)
 
         value_loss = F.mse_loss(values, results)
