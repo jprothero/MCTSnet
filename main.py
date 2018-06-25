@@ -49,7 +49,7 @@ if __name__ == '__main__':
         trainer.fastai_train(mctsnet.new, memories)
         pool.apply_async(G, (root_state,))
 
-    while iteration <= 5:
+    while iteration <= 500:
         """
         # single process trainer & evaluator
         new_memories, _ = F(root_state)
