@@ -47,11 +47,12 @@ class Trainer:
             search_probas = search_probas.cuda()
             net = net.cuda()
 
-        policies, values = net(states)
+        logits, values = net(states)
+        policies = F.log_softmax(logits, dim=1)
         policies = policies.view(-1)
 
         value_loss = F.mse_loss(values, results)
-        policy_loss = -search_probas.unsqueeze(0) @ torch.log(policies.unsqueeze(-1))
+        policy_loss = -search_probas.unsqueeze(0) @ policies.unsqueeze(-1)
         policy_loss /= len(minibatch)
 
         total_loss = value_loss + policy_loss
