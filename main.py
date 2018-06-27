@@ -6,10 +6,15 @@ from IPython.core.debugger import set_trace
 import torch
 import utils
 from MCTSnet_trainer import Trainer
-import multiprocessing as mp
+import torch.multiprocessing as mp
+from torch.multiprocessing import set_start_method
 
 import argparse
-
+"""
+import resource
+rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (4096, rlimit[1]))
+"""
 parser = argparse.ArgumentParser()
 parser.add_argument('--func', default='self_play', help='Choose between self_play and play_minmax')
 args = parser.parse_args()
@@ -29,25 +34,15 @@ if __name__ == '__main__':
         transition_and_evaluate=transition_and_evaluate)
 
     memories = utils.load_memories()
-
     trainer = Trainer()
     # define function references
     funcs = {'self_play': mctsnet.self_play, 'play_minmax': mctsnet.play_minmax}
     F = funcs[args.func]
     G = mctsnet.tournament
 
-    num_worker = 4
-    pool = ctx.Pool(processes=num_worker)
-
-    # multicore trainer
-    def multi_trainer():
-        res = pool.map(F, [root_state]*(num_worker-1))
-        for tup in res:
-            # tup[0] === new_memories
-            memories.extend(tup[0])
-        utils.save_memories(memories)
-        trainer.fastai_train(mctsnet.new, memories)
-        pool.apply_async(G, (root_state,))
+    num_worker = 2
+    Queue = ctx.Queue()
+    Event = ctx.Event()
 
     while iteration <= 500:
         """
@@ -58,9 +53,26 @@ if __name__ == '__main__':
         trainer.fastai_train(mctsnet.new, memories)
         G(root_state)
         """
-        multi_trainer()
+
+        workers = []
+        for i in range(num_worker):
+            worker = ctx.Process(target=F, args=(root_state,Queue,Event))
+            workers.append(worker)
+
+        for worker in workers:
+            worker.start()
+
+        for _ in workers:
+            memories.extend(Queue.get())
+            
+        Event.set()
+        for worker in workers:
+            worker.join()
+
+        utils.save_memories(memories)
+        trainer.fastai_train(mctsnet.new, memories)
+
+        G(root_state)
+
         iteration += 1
         print("Iteration Number "+str(iteration))
-
-    pool.join()
-    pool.close()

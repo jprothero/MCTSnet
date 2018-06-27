@@ -11,6 +11,6 @@ NUM_GROUPS=1
 
 #these are for the policy and value which should be more bottlenecked so that
 #they generalize better, these are both the minimum size for efficiency at this point
-SMALL_N = 1
-SMALL_K = 1
-SMALL_NG = 1
+SMALL_N = 5
+SMALL_K = 2
+SMALL_NG = 5

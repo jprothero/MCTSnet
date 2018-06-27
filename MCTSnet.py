@@ -48,7 +48,7 @@ class MCTSnet:
             self.new = self.new.cuda()
             self.best = self.best.cuda()
 
-    def self_play(self, root_state, best_only=True,
+    def self_play(self, root_state, queue=None, event=None, best_only=True,
         num_episodes=config.NUM_EPISODES, deterministic=False):
         self.best.eval()
         self.new.eval()
@@ -189,7 +189,11 @@ class MCTSnet:
             print("{} Wins: {}\n{} Wins: {}\n Draws: {}".format(name_order[0], scoreboard[name_order[0]],
                 name_order[1], scoreboard[name_order[1]], scoreboard["draws"]))
 
-        return memories, scoreboard
+        if queue is not None:
+            queue.put(memories)
+            event.wait()
+        else:
+            return memories, scoreboard
 
     def correct_policy(self, policy, state):
         # state = np.reshape(state, newshape=tuple(state.shape[1:]))
@@ -222,7 +226,7 @@ class MCTSnet:
         elif scoreboard["new"]*config.SCORING_THRESHOLD < scoreboard["best"]:
             self.new = model_utils.load_model()
 
-    def play_minmax(self, root_state, best_only=True,
+    def play_minmax(self, root_state, queue=None, event=None,best_only=True,
         num_episodes=config.NUM_EPISODES, deterministic=False):
         self.best.eval()
 
@@ -361,7 +365,11 @@ class MCTSnet:
             print("{} Wins: {}\n{} Wins: {}\n Draws: {}".format(name_order[0], scoreboard[name_order[0]],
                 name_order[1], scoreboard[name_order[1]], scoreboard["draws"]))
 
-        return memories, scoreboard
+        if queue is not None:
+            queue.put(memories)
+            event.wait()
+        else:
+            return memories, scoreboard
 
     # def choose_row(self):
     #     while True:
