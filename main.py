@@ -10,11 +10,11 @@ import torch.multiprocessing as mp
 from torch.multiprocessing import set_start_method
 
 import argparse
-"""
+
 import resource
 rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (4096, rlimit[1]))
-"""
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--func', default='self_play', help='Choose between self_play and play_minmax')
 args = parser.parse_args()
@@ -41,8 +41,6 @@ if __name__ == '__main__':
     G = mctsnet.tournament
 
     num_worker = 2
-    Queue = ctx.Queue()
-    Event = ctx.Event()
 
     while iteration <= 500:
         """
@@ -53,7 +51,8 @@ if __name__ == '__main__':
         trainer.fastai_train(mctsnet.new, memories)
         G(root_state)
         """
-
+        Queue = ctx.Queue()
+        Event = ctx.Event()
         workers = []
         for i in range(num_worker):
             worker = ctx.Process(target=F, args=(root_state,Queue,Event))
@@ -62,9 +61,18 @@ if __name__ == '__main__':
         for worker in workers:
             worker.start()
 
-        for _ in workers:
-            memories.extend(Queue.get())
-            
+        ended_worker = 0
+        while ended_worker < num_worker:
+            try:
+                ret = Queue.get()
+            except RuntimeError:
+                print('RuntimeError: received 0 items of ancdata')
+                break
+            if ret is None:
+                ended_worker += 1
+            else:
+                memories.extend(ret)
+
         Event.set()
         for worker in workers:
             worker.join()
@@ -72,6 +80,7 @@ if __name__ == '__main__':
         utils.save_memories(memories)
         trainer.fastai_train(mctsnet.new, memories)
 
+        # tournament between new model and best best model
         G(root_state)
 
         iteration += 1

@@ -191,6 +191,7 @@ class MCTSnet:
 
         if queue is not None:
             queue.put(memories)
+            queue.put(None)
             event.wait()
         else:
             return memories, scoreboard
@@ -367,6 +368,7 @@ class MCTSnet:
 
         if queue is not None:
             queue.put(memories)
+            queue.put(None)
             event.wait()
         else:
             return memories, scoreboard
